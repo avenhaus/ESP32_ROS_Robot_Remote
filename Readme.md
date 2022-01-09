@@ -42,7 +42,24 @@ This is still a work in progress. Basic functionality like publishing all the co
 
 ### ROS Topics
 
+
 ## Configuration
+```
+> rostopic info remote_joy
+Type: sensor_msgs/Joy
+
+> rostopic echo remote_joy
+
+header: 
+  seq: 211
+  stamp: 
+    secs: 50
+    nsecs: 497000000
+  frame_id: "remote"
+axes: [-0.011300298385322094, -0.011915299110114574, 0.0, 0.1590232104063034, -0.011768353171646595, -0.011577111668884754, 0.0, 0.754769504070282]
+buttons: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+```
 
 ## TODO
 * Code for Display 
@@ -52,6 +69,10 @@ This is still a work in progress. Basic functionality like publishing all the co
 * PCB
 
 ## Images
+![Back](images/Back.jpg)
+![Inside](images/Inside.jpg)
+![Inside 2](images/Inside_2.jpg)
+![Board](images/Board.jpg)
 ![Case Render](images/Case_Render.png)
 ![Case Render Back](images/Case_Render_Back.png)
 

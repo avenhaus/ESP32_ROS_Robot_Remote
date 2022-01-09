@@ -55,13 +55,16 @@ void setup() {
 
   loadConfig();
 
+  // This must be executed before Display initialization.
+  // Otherwise SPI gets messed up for some reason.
+  extendedInputSetup();
+
   #if ENABLE_DISPLAY
   displaySetup();
   displayBootScreen();  
   DEBUG_print(F("Screen Done\n"));
   #endif
   
-  extendedInputSetup();
 
 #if  ENABLE_WEB_SERVER
   if(!SPIFFS.begin(true)){
@@ -135,7 +138,7 @@ void loop() {
 
   }
 
-  #if USE_DISPLAY
+  #if ENABLE_DISPLAY
   guiRun();
   #endif
 

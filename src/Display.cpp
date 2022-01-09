@@ -23,7 +23,7 @@ public:
     { // Set the bus control.
       auto cfg = _bus_instance.config();    // Gets the structure for bus configuration.
 
-      cfg.spi_host = VSPI_HOST;     // Select the SPI to use (VSPI_HOST or HSPI_HOST)
+      cfg.spi_host = HSPI_HOST;     // Select the SPI to use (VSPI_HOST or HSPI_HOST)
       cfg.spi_mode = 0;             // Set SPI communication mode (0 ~ 3)
       cfg.freq_write = 40000000;    // SPI clock at the time of transmission (up to 80MHz, rounded to the value obtained by dividing 80MHz by an integer)
       cfg.freq_read  = 16000000;    // SPI clock when receiving
@@ -90,7 +90,7 @@ public:
       cfg.offset_rotation = 0;// Adjustment when the display and touch orientation do not match Set with a value from 0 to 7
 
 // For SPI connection
-      cfg.spi_host = VSPI_HOST;// Select the SPI to use (HSPI_HOST or VSPI_HOST)
+      cfg.spi_host = HSPI_HOST;// Select the SPI to use (HSPI_HOST or VSPI_HOST)
       cfg.freq = 1000000;     // Set SPI clock
       cfg.pin_sclk = LCD_SCK_PIN;    // Pin number to which SCLK is connected
       cfg.pin_mosi = LCD_MOSI_PIN;   // Pin number to which MOSI is connected
@@ -136,27 +136,17 @@ void lv_display_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *c
 /*Read the touchpad*/
 void lv_touchpad_read( lv_indev_drv_t * indev_driver, lv_indev_data_t * data )
 {
-   uint16_t touchX, touchY;
-
+   uint16_t touchX=0, touchY=0;
    bool touched = tft.getTouch( &touchX, &touchY);
-
-   if( !touched )
-   {
+   if( !touched ) {
       data->state = LV_INDEV_STATE_REL;
-   }
-   else
-   {
+   } else {
       data->state = LV_INDEV_STATE_PR;
 
       /*Set the coordinates*/
       data->point.x = touchX;
       data->point.y = touchY;
-
-      Serial.print( "Data x " );
-      Serial.println( touchX );
-
-      Serial.print( "Data y " );
-      Serial.println( touchY );
+      //DEBUG_printf(FST("Touch X:%d y:%d\n"), touchX, touchY);
    }
 }
 
@@ -368,8 +358,8 @@ void displayBootScreen() {
 #include <WiFi.h>
 void mainScreen() {
   char buffer[64];
-  sprintf(buffer, FST("Local: %s"), WiFi.localIP());
-   lv_obj_t *label = lv_label_create( lv_scr_act() );
+  IPAddress lip = WiFi.localIP();
+  sprintf(buffer, FST("Local: %d.%d.%d.%d"), lip[0], lip[1], lip[2], lip[3]);   lv_obj_t *label = lv_label_create( lv_scr_act() );
    lv_label_set_text( label, buffer);
    lv_obj_align( label, LV_ALIGN_CENTER, 0, 0 );
 
