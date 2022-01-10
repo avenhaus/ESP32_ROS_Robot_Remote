@@ -215,38 +215,6 @@ typedef enum JoyButton {
 extern int32_t joyButtons[JOY_BUTTON_SIZE];
 
 
-/* ============================================== *\
- * EEPROM Config Data
-\* ============================================== */
-bool loadConfig();
-void saveConfig();
-void setConfigData(const char* field, const char* data);
 
-struct WifiInfo {
-  char ssid[36];
-  char password[64];
-  char host_name[32];
-  uint8_t ip[4];
-  uint8_t dns[4];
-  uint8_t gateway[4];
-  uint8_t subnet[4];
-  bool isDisabled;
-};
-
-#define CONFIG_MAGIC 0x19710914
-struct ConfigData {
-  uint32_t magic;
-  uint32_t configSize;
-  uint16_t displayBrightness;
-  uint16_t touchCalibartionData[8];
-  char timeFormat[16];
-  char dateFormat[16];
-  char timeZone[48];
-  uint32_t adcVref;
-  WifiInfo wifi;
-  uint32_t crc;  // Must be at end of struct
-};
-
-extern ConfigData config;
 
 #endif

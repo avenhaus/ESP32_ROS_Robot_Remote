@@ -5,6 +5,7 @@
 #include <Arduino.h>
 
 #include "Config.h"
+#include "ConfVar.h"
 #include "SPIFFS.h"
 #include "Display.h"
 #include "ROS1.h"
@@ -54,6 +55,12 @@ void setup() {
   digitalWrite(LED_PIN, HIGH);  
 
   loadConfig();
+
+  DEBUG_println("========= Confi===");
+  char buffer[2048];
+  DEBUG_println(ConfigGroup::mainGroup->toJsonStr(buffer, sizeof(buffer), true));
+  DEBUG_println(buffer);
+
 
   // This must be executed before Display initialization.
   // Otherwise SPI gets messed up for some reason.

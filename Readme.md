@@ -40,10 +40,10 @@ This is still a work in progress. Basic functionality like publishing all the co
 * OTA update
 * Low cost
 
+## Configuration
+
 ### ROS Topics
 
-
-## Configuration
 ```
 > rostopic info remote_joy
 Type: sensor_msgs/Joy

@@ -23,6 +23,7 @@
 #include "Config.h"
 #include "Battery.h"
 #include "Analog.h"
+#include "ConfVar.h"
 
 #include "driver/adc.h"
 #include "esp_adc_cal.h"
@@ -32,6 +33,8 @@ float batteryVoltage = 0.0;
 float batteryVoltageFiltered = 0.0;
 int batteryChargeLevel = 0;
 uint32_t batteryReadTs_ = 0;
+
+ConfigUInt32 configAdcVref(FST("adc_vref"));
 
 //Characterize ADC at particular atten
 esp_adc_cal_characteristics_t adc1Chars;
@@ -67,12 +70,14 @@ int getLionCellChargeLevel(float volts) {
 
 
 void adcInit() {
-    esp_adc_cal_value_t valType = esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, config.adcVref, &adc1Chars);
+    esp_adc_cal_value_t valType = esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, configAdcVref.get(), &adc1Chars);
     //Check type of calibration value used to characterize ADC
     if (valType == ESP_ADC_CAL_VAL_EFUSE_VREF) { DEBUG_println(FST("eFuse ADC VRef")); } 
     else if (valType == ESP_ADC_CAL_VAL_EFUSE_TP) { DEBUG_println(FST("Two Point ADC VRef")); } 
-    else { DEBUG_printf(FST("Default ADC VRef: %3f\n"), config.adcVref * 0.001); }
-    esp_adc_cal_characterize(ADC_UNIT_2, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, config.adcVref, &adc2Chars);
+    else { DEBUG_printf(FST("Default ADC VRef: %3f\n"), configAdcVref.get() * 0.001); }
+
+    // esp_adc_cal_characterize(ADC_UNIT_2, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, configAdcVref.get(), &adc2Chars);
+
 }
 
 void batteryRun(uint32_t now/*=0*/) {

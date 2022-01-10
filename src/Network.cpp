@@ -5,10 +5,25 @@
 #include <sys/time.h>
 
 #include "Config.h"
+#include "ConfVar.h"
 #include "Secret.h"
 #include "Network.h"
 #include "TcpServer.h"
 #include "WebServer.h"
+
+
+ConfigGroup configGroupNetwork(FST("WIFI"));
+
+ConfigStr configSSID(FST("SSID"), 36, WIFI_SSID, 0, FST("Name of WIFI network"), &configGroupNetwork);
+ConfigStr configPassword(FST("Password"), 64, WIFI_PASSWORD, 0, FST("Password for WIFI network"), &configGroupNetwork);
+ConfigStr configHostname(FST("Hostname"), 32, HOSTNAME, 0, FST("Name of this deveice on the network"), &configGroupNetwork);
+
+ConfigIpAddr configIpAddr(FST("IP"), 0, 0, FST("Fixed IP address of this device"), &configGroupNetwork);
+ConfigIpAddr configGateway(FST("Gateway"), 0, 0, FST("Gateway IP address"), &configGroupNetwork);
+ConfigIpAddr configSubnet(FST("Subnet"), 0, 0, FST("Subnet mask"), &configGroupNetwork);
+ConfigIpAddr configDNS(FST("DNS"), 0, 0, FST("Domain Name Server"), &configGroupNetwork);
+
+ConfigBool configNetworkDisabled(FST("disabled"), 0, 0, FST("Disable networking"), &configGroupNetwork);
 
 
 int setenv(const char *, const char *, int);
@@ -33,12 +48,13 @@ void otaTask_(void* parameter ) {
 }
 
 void networkInit() {
-    if (config.wifi.ip[0] || config.wifi.ip[1] || config.wifi.ip[2] || config.wifi.ip[3]) {
+  uint8_t* ip = configIpAddr.get();
+    if (ip[0] || ip[1] || ip[2] || ip[3]) {
         // Static IP details...
-        IPAddress ip(config.wifi.ip);
-        IPAddress gateway(config.wifi.gateway);
-        IPAddress subnet(config.wifi.subnet);
-        IPAddress dns(config.wifi.dns);
+        IPAddress ip(ip);
+        IPAddress gateway(configGateway.get());
+        IPAddress subnet(configSubnet.get());
+        IPAddress dns(configDNS.get());
         WiFi.config(ip, dns, gateway, subnet);
     }
 
@@ -50,9 +66,9 @@ void networkInit() {
     WiFi.setHostname(full_hostname);
 
     DEBUG_printf(FST("\nConnecting '%s' to AP "), full_hostname);
-    DEBUG_printf(FST("WIFI: %s  PW: %s\n"), config.wifi.ssid, config.wifi.password);
+    DEBUG_printf(FST("WIFI: %s  PW: %s\n"), configSSID.get(), configPassword.get());
     WiFi.mode(WIFI_STA);
-    WiFi.begin(config.wifi.ssid, config.wifi.password);   //WiFi connection
+    WiFi.begin(configSSID.get(), configPassword.get());   //WiFi connection
     int n = 80;
     while (WiFi.status() != WL_CONNECTED)
     {

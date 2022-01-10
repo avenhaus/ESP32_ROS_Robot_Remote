@@ -1,4 +1,5 @@
 #include "Config.h"
+#include "ConfVar.h"
 
 #if ENABLE_DISPLAY
 #include "Display.h"
@@ -10,6 +11,10 @@
 #include <LovyanGFX.hpp>
 
 #include <lvgl.h>
+
+ConfigUInt16Array configTouchCalibration(FST("Touch Calibration"), 8);
+
+extern ConfigStr configSSID;
 
 class LGFX : public lgfx::LGFX_Device {
   lgfx::Panel_ILI9488  _panel_instance;
@@ -168,14 +173,15 @@ bool tft_output(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t* bitmap)
 
 void calibrateTouch() {
   bool touch_configured = false;
-  for (size_t n=0; n<(sizeof(config.touchCalibartionData)/sizeof(uint16_t)); n++) {
-    if (config.touchCalibartionData[n] != 0) {
+  uint16_t* ctc = configTouchCalibration.get();
+  for (size_t n=0; n<configTouchCalibration.size(); n++) {
+    if (ctc[n] != 0) {
       touch_configured = true;
       break;
     }
   }
   if (touch_configured) {
-      tft.setTouchCalibrate(config.touchCalibartionData);
+      tft.setTouchCalibrate(configTouchCalibration.get());
       has_touch = true;
   } else {
     // data not valid. recalibrate
@@ -187,12 +193,14 @@ void calibrateTouch() {
     tft.setTextColor(TFT_YELLOW, TFT_BLACK);
     tft.drawString(F("Touch Calibration"), LCD_WIDTH/2, 100);
     tft.drawString(F("Touch red corners with white arrow."), LCD_WIDTH/2, 140);
-    tft.calibrateTouch(config.touchCalibartionData, TFT_WHITE, TFT_RED, std::max(tft.width(), tft.height()) >> 3);
-    for (size_t n=0; n<(sizeof(config.touchCalibartionData)/sizeof(uint16_t)); n++) {
+    uint16_t tc[8] = {0};
+    tft.calibrateTouch(tc, TFT_WHITE, TFT_RED, std::max(tft.width(), tft.height()) >> 3);
+    for (size_t n=0; n<configTouchCalibration.size(); n++) {
       // DEBUG_printf(FST("%d "), config.touchCalibartionData[n]);      
-      if (config.touchCalibartionData[n] > 1) {
+      if (tc[n] > 1) {
         touch_configured = true;
         DEBUG_println(F("Calibration valid"));
+        configTouchCalibration.set(tc);
         saveConfig();
         has_touch = true;
         break;
@@ -206,12 +214,14 @@ void calibrateTouch() {
   }
 }
 
+/*
 size_t getTouchCalibrationJson(char* buffer, size_t bSize) {
   return snprintf_P(buffer, bSize, FST("[%d, %d, %d, %d, %d, %d]"), 
     config.touchCalibartionData[0], config.touchCalibartionData[1],
     config.touchCalibartionData[2], config.touchCalibartionData[3],
     config.touchCalibartionData[4], config.touchCalibartionData[5]);
 }
+*/
 
 void displaySetup() {
   if (LCD_LED_PIN > -1) {
@@ -290,7 +300,7 @@ void displayBootScreen() {
   tft.setCursor(0, 20);
   tft.setTextSize(1);
   tft.setFont(&fonts::Font4);
-  sprintf(buffer, FST("Connecting to: %s"), config.wifi.ssid);
+  sprintf(buffer, FST("Connecting to: %s"), configSSID.get());
   tft.drawString(buffer, LCD_WIDTH/2, 140);
 
 
