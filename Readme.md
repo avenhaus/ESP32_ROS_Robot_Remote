@@ -62,19 +62,23 @@ buttons: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 ```
 
 ## TODO
-* Code for Display 
+
+* Code cleanup, license and documentation
+* Code for Display
 * Web Configuration
 * Build instructions
 * ROS-2 support
 * PCB
 
 ## Images
+
 ![Back](images/Back.jpg)
 ![Inside](images/Inside.jpg)
 ![Inside 2](images/Inside_2.jpg)
 ![Board](images/Board.jpg)
 ![Case Render](images/Case_Render.png)
 ![Case Render Back](images/Case_Render_Back.png)
+![Case Render Inside](images/Case_Render_Inside.png)
 
 ## Links
 * [ROS - Robot Operating System](https://www.ros.org/)

@@ -5,7 +5,7 @@
 #include <sys/time.h>
 
 #include "Config.h"
-#include "ConfVar.h"
+#include "ConfigReg.h"
 #include "Secret.h"
 #include "Network.h"
 #include "TcpServer.h"

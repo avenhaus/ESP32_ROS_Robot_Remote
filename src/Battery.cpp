@@ -23,7 +23,7 @@
 #include "Config.h"
 #include "Battery.h"
 #include "Analog.h"
-#include "ConfVar.h"
+#include "ConfigReg.h"
 
 #include "driver/adc.h"
 #include "esp_adc_cal.h"
@@ -34,7 +34,7 @@ float batteryVoltageFiltered = 0.0;
 int batteryChargeLevel = 0;
 uint32_t batteryReadTs_ = 0;
 
-ConfigUInt32 configAdcVref(FST("adc_vref"));
+ConfigUInt32 configAdcVref(FST("adc_vref"), ADC_VREF, nullptr, FST("ADC calibration"));
 
 //Characterize ADC at particular atten
 esp_adc_cal_characteristics_t adc1Chars;

@@ -1,5 +1,5 @@
 #include "Config.h"
-#include "ConfVar.h"
+#include "ConfigReg.h"
 
 #if ENABLE_DISPLAY
 #include "Display.h"
@@ -12,6 +12,8 @@
 
 #include <lvgl.h>
 
+
+ConfigUInt8 configDisplayBrightness(FST("LCD Brightness"), 200, nullptr, FST("Brightness of LCD backlight"), nullptr, nullptr, setDisplayBrightness);
 ConfigUInt16Array configTouchCalibration(FST("Touch Calibration"), 8);
 
 extern ConfigStr configSSID;
@@ -122,6 +124,10 @@ uint32_t next_display_update_ms = 0;
 static lv_disp_draw_buf_t draw_buf;
 static lv_color_t buf[ LCD_WIDTH * 10 ];
 
+bool setDisplayBrightness(uint8_t val, void* cbData/*=nullptr*/) {
+  tft.setBrightness(val);
+  return false;
+}
 
 /* Display flushing */
 void lv_display_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p )
@@ -234,7 +240,7 @@ void displaySetup() {
   }
   tft.init();
   tft.setRotation(3);
-  tft.setBrightness(255);
+  tft.setBrightness(configDisplayBrightness.get());
   calibrateTouch();
 
   lv_init();

@@ -16,7 +16,7 @@
 class TcpConnection : public Stream {
 public:
   enum AcceptState { Busy, Accepted, NoConnection };
-  TcpConnection() :  buffer_index(0), cmdli(this) { }
+  TcpConnection() :  buffer_index(0), cmdli(this) { buffer[0] = 0; }
   AcceptState accept(WiFiServer& server);
   inline bool isConnected() { return connection.connected(); }
   void run();

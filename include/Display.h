@@ -7,7 +7,7 @@
 void displaySetup();
 void guiRun();
 void mainScreen();
-void setDisplayBrightness(uint16_t value);
+bool setDisplayBrightness(uint8_t value, void* cbData=nullptr);
 void displayBootScreen();
 size_t getTouchCalibrationJson(char* buffer, size_t bSize=1<<30);
 
