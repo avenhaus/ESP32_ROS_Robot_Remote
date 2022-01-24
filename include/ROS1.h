@@ -19,9 +19,6 @@ class Ros1WiFiLink {
     unsigned long time() { return millis(); }
 };
 
-extern char ros1Host[32];
-extern uint16_t ros1Port;
-
 void ros1Handler1(const std_msgs::Empty& toggle_msg);
 
 #endif  // _ROS1_H_

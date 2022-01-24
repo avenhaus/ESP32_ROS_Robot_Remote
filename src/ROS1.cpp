@@ -4,11 +4,15 @@
 #include <sensor_msgs/BatteryState.h>
 
 #include "Config.h"
+#include "ConfigReg.h"
 #include "ROS1.h"
 #include "Battery.h"
 
-char ros1Host[32] = ROS1_HOST;
-uint16_t ros1Port = ROS1_PORT;
+
+ConfigGroup configGroupRos1(FST("ROS1"));
+
+ConfigStr configRos1Host(FST("Host"), 32, ROS1_HOST, FST("ROS1 server"), 0, &configGroupRos1);
+ConfigUInt16 configRos1Port(FST("Port"), ROS1_PORT, FST("ROS1 server port number"), 0, &configGroupRos1);
 
 WiFiClient ros1WifiClient;
 ros::NodeHandle_<Ros1WiFiLink> ros1Node;
@@ -73,9 +77,9 @@ bool ros1CheckConnectionState() {
     uint32_t now = millis();
     if (!ros1IsConnected_) {
         if (ros1LastConnectTs_ != 0 && now < (ros1LastConnectTs_ + 1000)) { return false; }
-        if (ros1LastConnectTs_ == 0) { DEBUG_printf(FST("ROS1 Wifi host:%s, port:%d\n"), ros1Host, ros1Port); }
+        if (ros1LastConnectTs_ == 0) { DEBUG_printf(FST("ROS1 Wifi host:%s, port:%d\n"), configRos1Host.get(), configRos1Port.get()); }
         ros1LastConnectTs_ = now;
-        if (!ros1WifiClient.connect(ros1Host, ros1Port)) {
+        if (!ros1WifiClient.connect(configRos1Host.get(), configRos1Port.get())) {
             DEBUG_println(FST("Waiting for ROS1 connection"));
             return false;
         }

@@ -18,7 +18,7 @@ uint32_t getExtendedInputs();
 extern uint32_t extended_inputs;
 extern uint32_t old_extended_inputs;
 
-Stream* debugStream = &Serial;
+Print* debugStream = &Serial;
 
 Encoder encoderLeft;
 Encoder encoderRight;
@@ -45,7 +45,7 @@ void networkRun(void);
 
 void setup() {
   Serial.begin(SERIAL_SPEED);
-  DEBUG_printf(FST("\n\nROS Remote %s | %s | %s\n"), version_number, version_date, version_time);
+  DEBUG_printf(FST("\n\n%s %s | %s | %s\n"), PROJECT_NAME, VERSION_NUMBER, VERSION_DATE, VERSION_TIME);
   DEBUG_printf(FST("Compiled with ESP32 SDK:%s\n\n"), ESP.getSdkVersion());
 
   adcInit();

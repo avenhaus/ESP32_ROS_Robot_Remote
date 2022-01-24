@@ -13,6 +13,10 @@
 #define MAX_TCP_CONNECTIONS 3
 #endif
 
+#ifndef TELNET_PORT
+#define TELNET_PORT 23
+#endif
+
 class TcpConnection : public Stream {
 public:
   enum AcceptState { Busy, Accepted, NoConnection };
@@ -24,9 +28,9 @@ public:
 protected:
 
   // Stream implementation
-  int read();
-  int available();
-  int peek();
+  virtual int read();
+  virtual int available();
+  virtual int peek();
   virtual size_t write(uint8_t val);
   using Print::write; // pull in write(str) and write(buf, size) from Print
   virtual void flush();
@@ -43,7 +47,7 @@ protected:
 
 class TcpServer {
 public:
-  TcpServer(uint16_t port=23)  : server(port) { }
+  TcpServer(uint16_t port=TELNET_PORT)  : server(port) { }
   void begin() { server.begin(); }
   void run();
 

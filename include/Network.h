@@ -19,4 +19,10 @@ uint32_t getMillisDelay(uint32_t frequency);
 size_t getIsoTime(char* buffer);
 size_t getTimeStr(char* buffer, const char* fmt);
 
+void printMac(Print& s, uint8_t *mac);
+void wifiInfo(Print& s);
+
+extern ConfigStr configHostname;
+extern char fullHostname[];
+
 #endif // NETWORK_H

@@ -4,3 +4,8 @@
 .vscode/launch.json
 .vscode/ipch
 include/Secret.h
+WebUI/dist
+WebUI/Node_modules
+WebUI/package.json
+WebUI/package-lock.json
+WebUI/index.html.gz

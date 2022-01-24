@@ -5,6 +5,7 @@
 #include <sys/time.h>
 
 #include "Config.h"
+#include "Helper.h"
 #include "ConfigReg.h"
 #include "Secret.h"
 #include "Network.h"
@@ -12,18 +13,18 @@
 #include "WebServer.h"
 
 
-ConfigGroup configGroupNetwork(FST("WIFI"));
+ConfigGroup configGroupNetwork(FST("WIFI"), nullptr, FST("Network Settings"));
 
-ConfigStr configSSID(FST("SSID"), 36, WIFI_SSID, 0, FST("Name of WIFI network"), &configGroupNetwork);
-ConfigStr configPassword(FST("Password"), 64, WIFI_PASSWORD, 0, FST("Password for WIFI network"), &configGroupNetwork);
-ConfigStr configHostname(FST("Hostname"), 32, HOSTNAME, 0, FST("Name of this deveice on the network"), &configGroupNetwork);
+ConfigStr configSSID(FST("SSID"), 36, WIFI_SSID, FST("Name of WIFI network"), 0, &configGroupNetwork);
+ConfigStr configPassword(FST("Password"), 64, WIFI_PASSWORD, FST("Password for WIFI network"), 0, &configGroupNetwork, 0,0,0,0, CVF_PASSWORD);
+ConfigStr configHostname(FST("Hostname"), 32, HOSTNAME, FST("Name of this device on the network"), 0, &configGroupNetwork);
 
-ConfigIpAddr configIpAddr(FST("IP"), 0, 0, FST("Fixed IP address of this device"), &configGroupNetwork);
-ConfigIpAddr configGateway(FST("Gateway"), 0, 0, FST("Gateway IP address"), &configGroupNetwork);
-ConfigIpAddr configSubnet(FST("Subnet"), 0, 0, FST("Subnet mask"), &configGroupNetwork);
-ConfigIpAddr configDNS(FST("DNS"), 0, 0, FST("Domain Name Server"), &configGroupNetwork);
+ConfigIpAddr configIpAddr(FST("IP"), 0, FST("Fixed IP address of this device"), 0, &configGroupNetwork);
+ConfigIpAddr configGateway(FST("Gateway"), 0, FST("Gateway IP address"), 0, &configGroupNetwork);
+ConfigIpAddr configSubnet(FST("Subnet"), 0, FST("Subnet mask"), 0, &configGroupNetwork);
+ConfigIpAddr configDNS(FST("DNS"), 0, FST("Domain Name Server"), 0, &configGroupNetwork);
 
-ConfigBool configNetworkDisabled(FST("disabled"), 0, 0, FST("Disable networking"), &configGroupNetwork);
+ConfigBool configNetworkDisabled(FST("disabled"), 0, FST("Disable networking"), 0, &configGroupNetwork);
 
 
 int setenv(const char *, const char *, int);
@@ -35,8 +36,9 @@ TcpServer* tcpServer;
 WebServer* webServer;
 
 bool gotNtp = false;
+char fullHostname[64] = "";
 
-void otaInit(const char* full_hostname);
+void otaInit(const char* fullHostname);
 void networkRun();
 void wsRun();
 
@@ -59,13 +61,13 @@ void networkInit() {
     }
 
     // Configure the hostname
-    char full_hostname[64];
+
     uint8_t mac[6];
     WiFi.macAddress(mac);
-    snprintf(full_hostname, sizeof(full_hostname)-1, "%s-%02X%02X", HOSTNAME, mac[4], mac[5]);
-    WiFi.setHostname(full_hostname);
+    snprintf(fullHostname, sizeof(fullHostname)-1, "%s-%02X%02X", HOSTNAME, mac[4], mac[5]);
+    WiFi.setHostname(fullHostname);
 
-    DEBUG_printf(FST("\nConnecting '%s' to AP "), full_hostname);
+    DEBUG_printf(FST("\nConnecting '%s' to AP "), fullHostname);
     DEBUG_printf(FST("WIFI: %s  PW: %s\n"), configSSID.get(), configPassword.get());
     WiFi.mode(WIFI_STA);
     WiFi.begin(configSSID.get(), configPassword.get());   //WiFi connection
@@ -82,12 +84,21 @@ void networkInit() {
     }
 
     DEBUG_println();
-    DEBUG_print(FST("WiFi connected. IP address: "));
+    DEBUG_print(FST("WiFi connected. IP address: http://"));
     DEBUG_println(WiFi.localIP());
-    DEBUG_println();
 
+#if ENABLE_MDNS
+    if (!MDNS.begin(fullHostname)) {
+      DEBUG_println("Cannot start mDNS");
+    } else {
+      MDNS.addService("http", "tcp", HTTP_PORT);
+      DEBUG_printf(FST("mDNS: http://%s.local\n"), fullHostname);
+    }
+#endif
+
+    
 #if ENABLE_OTA
-    otaInit(full_hostname);
+    otaInit(fullHostname);
 #endif
 
 #if ENABLE_TELNET
@@ -229,3 +240,150 @@ size_t getTimeStr(char* buffer, const char* fmt) {
   time(&now);
   return strftime(buffer, 32, fmt, localtime(&now));
 }
+
+
+int32_t getWifiSignalStrength(int32_t RSSI) {
+    if (RSSI <= -100) { return 0; }
+    if (RSSI >= -50) { return 100; }
+    return 2 * (RSSI + 100);
+}
+
+void printMac(Print& s, uint8_t *mac) {
+  s.printf(FST("%02X:%02X:%02X:%02X:%02X:%02X"), mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+}
+
+
+/*----------------------------------------------------------------------*\
+|* Wifi Info
+\*----------------------------------------------------------------------*/
+
+#include <esp_wifi.h>
+#include <esp_ota_ops.h>
+void wifiInfo(Print& s) {
+  char buffer[64];  
+  s.print(FST("WIFI Sleep mode: ")); s.println(WiFi.getSleep() ? FST("Modem") : FST("None"));
+    int mode = WiFi.getMode();
+    if (mode != WIFI_MODE_NULL) {
+        //Is OTA available ?
+        size_t flashsize = 0;
+        if (esp_ota_get_running_partition()) {
+            const esp_partition_t* partition = esp_ota_get_next_update_partition(NULL);
+            if (partition) {
+                flashsize = partition->size;
+            }
+        }
+        StrTool::formatBytes(buffer, sizeof(buffer), flashsize);
+        s.print(FST("Available Size for OTA update: ")); s.println(buffer);
+        s.printf(FST("HTTP port: %d\r\n"), HTTP_PORT); 
+        s.printf(FST("Telnet port: %d\r\n"), TELNET_PORT); 
+        s.print(FST("Hostname: ")); s.println(configHostname.get());
+        s.print(FST("Full Hostname: ")); s.println(fullHostname);
+    }
+
+    s.print(FST("Current WiFi Mode: "));
+    switch (mode) {
+        case WIFI_STA:
+            s.printf(FST("STA(%s)\r\n"), WiFi.macAddress().c_str());
+
+            s.print(FST("Connected to: "));
+            if (WiFi.isConnected()) {  //in theory no need but ...
+                s.println(WiFi.SSID());
+                s.print(FST("Signal: ")); s.println(getWifiSignalStrength(WiFi.RSSI()));
+
+                uint8_t PhyMode;
+                esp_wifi_get_protocol(WIFI_IF_STA, &PhyMode);
+                const char* modeName;
+                switch (PhyMode) {
+                    case WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N:
+                        modeName = FST("11n");
+                        break;
+                    case WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G:
+                        modeName = FST("11g");
+                        break;
+                    case WIFI_PROTOCOL_11B:
+                        modeName = FST("11b");
+                        break;
+                    default:
+                        modeName = FST("???");
+                }
+                s.print(FST("Phy Mode: ")); s.println(modeName);
+                s.print(FST("Channel: ")); s.println(WiFi.channel());
+
+                tcpip_adapter_dhcp_status_t dhcp_status;
+                tcpip_adapter_dhcpc_get_status(TCPIP_ADAPTER_IF_STA, &dhcp_status);
+                s.print(FST("IP Mode: ")); s.println(dhcp_status == TCPIP_ADAPTER_DHCP_STARTED ? FST("DHCP") : FST("Static"));
+                s.print(FST("IP: ")); s.println(WiFi.localIP().toString());
+                s.print(FST("Gateway: ")); s.println(WiFi.gatewayIP().toString());
+                s.print(FST("Mask: ")); s.println(WiFi.subnetMask().toString());
+                s.print(FST("DNS: ")); s.println(WiFi.dnsIP().toString());
+
+            }  //this is web command so connection => no command
+            s.printf(FST("Disabled Mode: AP(%s)\r\n"), WiFi.softAPmacAddress().c_str());
+            break;
+        case WIFI_AP:
+            s.printf(FST("AP(%s)\r\n"), WiFi.softAPmacAddress().c_str());
+
+            wifi_config_t conf;
+            esp_wifi_get_config(WIFI_IF_AP, &conf);
+            s.print(FST("SSID: ")); s.println((const char*)conf.ap.ssid);
+            s.print(FST("Visible: ")); s.println(conf.ap.ssid_hidden == 0 ? FST("Yes") : FST("No"));
+
+            const char* mode;
+            switch (conf.ap.authmode) {
+                case WIFI_AUTH_OPEN:
+                    mode = FST("None");
+                    break;
+                case WIFI_AUTH_WEP:
+                    mode = FST("WEP");
+                    break;
+                case WIFI_AUTH_WPA_PSK:
+                    mode = FST("WPA");
+                    break;
+                case WIFI_AUTH_WPA2_PSK:
+                    mode = FST("WPA2");
+                    break;
+                default:
+                    mode = FST("WPA/WPA2");
+            }
+
+            s.print(FST("Authentication: ")); s.println(mode);
+            s.print(FST("Max Connections: ")); s.println(conf.ap.max_connection);
+
+            tcpip_adapter_dhcp_status_t dhcp_status;
+            tcpip_adapter_dhcps_get_status(TCPIP_ADAPTER_IF_AP, &dhcp_status);
+            s.print(FST("DHCP Server: ")); s.println(dhcp_status == TCPIP_ADAPTER_DHCP_STARTED ? FST("Started") : FST("Stopped"));
+
+            s.print(FST("IP: ")); s.println(WiFi.softAPIP().toString());
+
+            tcpip_adapter_ip_info_t ip_AP;
+            tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_AP, &ip_AP);
+            s.print(FST("Gateway: ")); s.println(IPAddress(ip_AP.gw.addr));
+            s.print(FST("Mask: ")); s.println(IPAddress(ip_AP.netmask.addr));
+
+            wifi_sta_list_t          station;
+            tcpip_adapter_sta_list_t tcpip_sta_list;
+            esp_wifi_ap_get_sta_list(&station);
+            tcpip_adapter_get_sta_list(&station, &tcpip_sta_list);
+            s.print(FST("Connected channels: ")); s.println(station.num);
+
+            for (int i = 0; i < station.num; i++) {
+                printMac(s, tcpip_sta_list.sta[i].mac);
+                s.write(' ');
+                s.println(IPAddress(tcpip_sta_list.sta[i].ip.addr).toString());
+            }
+            s.print(FST("Disabled Mode: "));
+            s.printf(FST("STA(%s)\r\n"), WiFi.macAddress().c_str());
+            break;
+        case WIFI_AP_STA:  //we should not be in this state but just in case ....
+            s.println(FST("Mixed"));
+
+            s.printf(FST("STA(%s)\r\n"), WiFi.macAddress().c_str());
+            s.printf(FST("AP(%s)\r\n"), WiFi.softAPmacAddress().c_str());
+            break;
+        default:  //we should not be there if no wifi ....
+            s.println(FST("Off"));
+            break;
+    }
+    s.println();
+}
+

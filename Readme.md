@@ -85,4 +85,13 @@ buttons: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 ## Credits
 Inspired by James Bruton [Touchscreen Smart Robot Remote](https://www.youtube.com/watch?v=ATQblGOjMWQ)
-<p align="right">(<a href="#top">back to top</a>)</p>
+
+Web UI is inspired by and somewhat based on [ESP3D-WEBUI](https://github.com/luc-github/ESP3D-WEBUI) and [FluidNC](https://github.com/bdring/FluidNC)
+
+<p align="right">(<a href="#top">back to top</a>)</p> 
+
+
+
+
+
+

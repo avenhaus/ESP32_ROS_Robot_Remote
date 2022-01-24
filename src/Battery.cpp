@@ -34,7 +34,7 @@ float batteryVoltageFiltered = 0.0;
 int batteryChargeLevel = 0;
 uint32_t batteryReadTs_ = 0;
 
-ConfigUInt32 configAdcVref(FST("adc_vref"), ADC_VREF, nullptr, FST("ADC calibration"));
+ConfigUInt32 configAdcVref(FST("adc_vref"), ADC_VREF, FST("ADC calibration"));
 
 //Characterize ADC at particular atten
 esp_adc_cal_characteristics_t adc1Chars;

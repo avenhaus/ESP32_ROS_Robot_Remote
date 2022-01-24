@@ -13,11 +13,12 @@
 #include <lvgl.h>
 
 
-ConfigUInt8 configDisplayBrightness(FST("LCD Brightness"), 200, nullptr, FST("Brightness of LCD backlight"), nullptr, nullptr, setDisplayBrightness);
-ConfigUInt16Array configTouchCalibration(FST("Touch Calibration"), 8);
+ConfigUInt8 configDisplayBrightness(FST("LCD Brightness"), 200, FST("Brightness of LCD backlight"), nullptr, nullptr, nullptr, setDisplayBrightness);
+ConfigUInt16Array configTouchCalibration(FST("Touch Calibration"), 8,0,0,0,0,0,0,0,0, CVF_HIDDEN);
 
 extern ConfigStr configSSID;
 
+static bool isDisplayConfigured = false;
 class LGFX : public lgfx::LGFX_Device {
   lgfx::Panel_ILI9488  _panel_instance;
   lgfx::Bus_SPI        _bus_instance;
@@ -125,7 +126,7 @@ static lv_disp_draw_buf_t draw_buf;
 static lv_color_t buf[ LCD_WIDTH * 10 ];
 
 bool setDisplayBrightness(uint8_t val, void* cbData/*=nullptr*/) {
-  tft.setBrightness(val);
+  if (isDisplayConfigured) { tft.setBrightness(val); }
   return false;
 }
 
@@ -262,16 +263,9 @@ void displaySetup() {
    indev_drv.type = LV_INDEV_TYPE_POINTER;
    indev_drv.read_cb = lv_touchpad_read;
    lv_indev_drv_register( &indev_drv );
+   isDisplayConfigured = true;
 }
-/*
-void set_display_brightness(uint16_t value) {
-  if (value > 100) return;
-  config.display_brightness = value;
-  if (LCD_LED_PIN > -1) {
-    ledcWrite(LCD_LED_PWM_CHANNEL, pow(1023.0, (float)value / 100.0));
-  }
-}
-*/
+
 static void btn_event_cb(lv_event_t * e)
 {
     lv_event_code_t code = lv_event_get_code(e);
