@@ -111,6 +111,13 @@ function smoosh() {
         .pipe(gulp.dest('dist'))
 }
 
+
+function removeComments() {
+    return gulp.src('dist/index.html')
+    .pipe(htmlmin({removeComments: true, collapseWhitespace: true, minifyCSS: true}))
+    .pipe(gulp.dest('dist'))
+}
+
 function compress() {
     return gulp.src('dist/index.html')
         .pipe(gzip())
@@ -127,8 +134,8 @@ gulp.task(minifyApp);
 gulp.task(smoosh);
 gulp.task(clean2);
 
-var defaultSeries = gulp.series(clean,  lint, Copy, concatApp, includehtml, includehtml, smoosh);
-var packageSeries = gulp.series(clean,  lint, Copy, concatApp, includehtml, includehtml, minifyApp, smoosh, compress, clean2);
+var defaultSeries = gulp.series(clean,  lint, Copy, concatApp, includehtml, includehtml, smoosh, removeComments);
+var packageSeries = gulp.series(clean,  lint, Copy, concatApp, includehtml, includehtml, minifyApp, smoosh, removeComments, compress, clean2);
 
 gulp.task('default', defaultSeries);
 gulp.task('package', packageSeries);

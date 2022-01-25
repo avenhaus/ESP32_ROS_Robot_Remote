@@ -153,6 +153,8 @@ extern Print* debugStream;
 #define ENABLE_TELNET 1
 #define ENABLE_WEB_SERVER 1
 #define ENABLE_EMBEDDED_WEB_UI 1
+#define ENABLE_SPIFFS_WEB_UI 1
+#define ENABLE_SPIFFS_WEB_CONTENT 0
 #define ENABLE_MDNS 1
 #define ENABLE_NTP 1
 #define ENABLE_SPIFFS 1

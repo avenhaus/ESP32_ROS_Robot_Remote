@@ -8,24 +8,6 @@ function SPIFFStab(root) {
     SendCommand('list','');
 }
 
-function trash_icon(){
-    var content ="<svg width='24' height='24' viewBox='0 0 128 128'>";
-    content +="<rect x='52' y='12' rx='6' ry='6' width='25' height='7' style='fill:red;' />";
-    content +="<rect x='52' y='16' width='25' height='2' style='fill:white;' />";
-    content +="<rect x='30' y='18' rx='6' ry='6' width='67' height='100' style='fill:red;' />";
-    content +="<rect x='20' y='18' rx='10' ry='10' width='87' height='14' style='fill:red;' />";
-    content +="<rect x='20' y='29' width='87' height='3' style='fill:white;' />";
-    content +="<rect x='40' y='43' rx='7' ry='7' width='7' height='63' style='fill:white;' />";
-    content +="<rect x='60' y='43' rx='7' ry='7' width='7' height='63' style='fill:white;' />";
-    content +="<rect x='80' y='43' rx='7' ry='7' width='7' height='63' style='fill:white;' /></svg>";
-    return content;
-}
-
-function back_icon(){
-  var content ="<svg width='24' height='24' viewBox='0 0 24 24'><path d='M7,3 L2,8 L7,13 L7,10 L17,10 L18,11 L18,15 L17,16 L10,16 L9,17 L9,19 L10,20 L20,20 L22,18 L22,8 L20,6 L7,6 z' stroke='black' fill='white' /></svg>";
-  return content;
-}
-
 function select_dir(directoryname){
     currentpath+=directoryname + "/";
     SendCommand('list','');
@@ -53,7 +35,7 @@ if (currentpath!="/")
     {
      var pos = currentpath.lastIndexOf("/",currentpath.length-2);
      var previouspath = currentpath.slice(0,pos+1);
-     content +="<tr style='cursor:hand;' onclick=\"currentpath='"+previouspath+"'; SendCommand('list','');\"><td >"+back_icon()+"</td><td colspan='4'> Up..</td></tr>";
+     content +="<tr style='cursor:hand;' onclick=\"currentpath='"+previouspath+"'; SendCommand('list','');\"><td >"+"<svg width='24' height='24' viewBox='0 0 24 24' version=\"2.0\"> <use href=\"#icon-back\" /> </svg>"+"</td><td colspan='4'> Up..</td></tr>";
     }
 jsonresponse.files.sort(function(a, b) {
     return compareStrings(a.name, b.name);
@@ -64,8 +46,7 @@ for (var i1=0;i1 <jsonresponse.files.length;i1++){
 if (String(jsonresponse.files[i1].size) != "-1")
     {
     content +="<TR>";
-    content +="<td><svg height='24' width='24' viewBox='0 0 24 24' >    <path d='M1,2 L1,21 L2,22 L16,22 L17,21 L17,6 L12,6 L12,1  L2,1 z' stroke='black' fill='white' /><line x1='12' y1='1' x2='17' y2='6' stroke='black' stroke-width='1'/>";
-    content +="</svg></td>";
+    content +="<td><svg height='24' width='24' style='color:#5bc0de;' version=\"2.0\"> <use href=\"#icon-file\" /> </svg></td>";
     content +="<TD class='btnimg' style=\"padding:0px;\"><a href=\""+jsonresponse.path+jsonresponse.files[i1].name+"\" target=_blank><div class=\"blacklink\">";
     content +=jsonresponse.files[i1].name;
     content +="</div></a></TD><TD>";
@@ -80,7 +61,7 @@ if (String(jsonresponse.files[i1].size) != "-1")
     content +="<TD></TD>";    
     }
     content +="<TD width='0%'><div class=\"btnimg\" onclick=\"Delete('"+jsonresponse.files[i1].name+"')\">";
-    content +=trash_icon();
+    content +="<svg width='24' height='24' viewBox='0 0 128 128' version=\"2.0\" style='color:red;'> <use href=\"#icon-trash\" /> </svg>";
     content +="</div></TD><td></td></TR>";
     }
 }
@@ -88,7 +69,7 @@ if (String(jsonresponse.files[i1].size) != "-1")
 for (var i2=0;i2 <jsonresponse.files.length;i2++){
 if (String(jsonresponse.files[i2].size) == "-1")
     {
-    content+="<TR><td><svg height='24' width='24' viewBox='0 0 24 24' ><path d='M19,11 L19,8 L18,7 L8,7 L8,5 L7,4 L2,4 L1,5 L1,22 L19,22 L20,21 L23,11 L5,11 L2,21 L1,22' stroke='black' fill='white' /></svg></td>";
+    content +="<TR><td><svg height='24' width='24' style='color:#5bc0de;' version=\"2.0\"> <use href=\"#icon-folder-open\" /> </svg></td>";
     content +="<TD  class='btnimg blacklink' style='padding:10px 15px;' onclick=\"select_dir('" + jsonresponse.files[i2].name+"');\">";
     content +=jsonresponse.files[i2].name;
     content +="</TD><TD></TD><TD></TD>";
@@ -96,7 +77,7 @@ if (String(jsonresponse.files[i2].size) == "-1")
         display_time = true;
     }
     content +="<TD width='0%'><div class=\"btnimg\" onclick=\"Deletedir('"+jsonresponse.files[i2].name+"')\">";
-    content +=trash_icon();
+    content +="<svg width='24' height='24' viewBox='0 0 128 128' version=\"2.0\" style='color:red;'> <use href=\"#icon-trash\" /> </svg>"
     content +="</div></TD><td></td></TR>";
     }
 }
@@ -109,13 +90,13 @@ if(display_time){
  document.getElementById('path').innerHTML=navbar();}
 
 function Delete(filename){
-    if (confirm("Confirm deletion of file: " + filename)) {
+    if (confirmdlg("Confirm deletion of file: " + filename)) {
         SendCommand("delete",filename);
     }
 }
 
 function Deletedir(filename){
-    if (confirm("Confirm deletion of directory: " + filename)) {
+    if (confirmdlg("Confirm deletion of directory: " + filename)) {
         SendCommand("delete_dir",filename);
     }
 }

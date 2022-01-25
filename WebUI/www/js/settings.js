@@ -88,8 +88,6 @@ function build_select_for_setting_list(index, subindex) {
         if (setting_configList[index].options[i].id == setting_configList[index].defaultvalue) html += " selected ";
         html += ">";
         html += setting_configList[index].options[i].display;
-        //Ugly workaround for OSX Chrome and Safari
-        if (browser_is("MacOSX")) html += "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
         html += "</option>\n";
     }
     html += "</select>\n";
@@ -126,7 +124,7 @@ function build_control_from_index(index, extra_set_function) {
             content += "<div class='input-group'>";
             content += "<div class='input-group-btn'>";
             content += "<button class='btn btn-default btn-svg' onclick='setting_revert_to_default(" + i + "," + sub_element + ")' >";
-            content += get_icon_svg("repeat");
+            content += "<svg width='1.3em' height='1.2em' version='2.0'> <use href='#icon-repeat' /> </svg>";
             content += "</button>";
             content += "</div>";
             content += "<input class='hide_it'></input>";
@@ -162,7 +160,7 @@ function build_control_from_index(index, extra_set_function) {
             content += "' translate english_content='Set' >" + "Set" + "</button>";
             if (setting_configList[i].pname == EP_STA_SSID) {
                 content += "<button class='btn btn-default btn-svg' onclick='scanwifidlg(\"" + i + "\",\"" + sub_element + "\")'>";
-                content += get_icon_svg("search");
+                content += "<svg width='1.3em' height='1.2em' version='2.0'> <use href='#icon-search' /> </svg>";
                 content += "</button>";
             }
             content += "</div>";
@@ -465,7 +463,7 @@ function settingsetvalue(index, subindex) {
         setting_configList[index].defaultvalue = value;
         document.getElementById('btn_setting_' + index + "_" + sub).className = "btn btn-success";
         document.getElementById('icon_setting_' + index + "_" + sub).className = "form-control-feedback has-success ico_feedback";
-        document.getElementById('icon_setting_' + index + "_" + sub).innerHTML = get_icon_svg("ok");
+        document.getElementById('icon_setting_' + index + "_" + sub).innerHTML = "<svg width='1.3em' height='1.2em' version='2.0'> <use href='#icon-ok' /> </svg>";
         document.getElementById('status_setting_' + index + "_" + sub).className = "form-group has-feedback has-success";
         var url = "/command?plain=" + encodeURIComponent(cmd);
         SendGetHttp(url, setESPsettingsSuccess, setESPsettingsfailed);
@@ -507,13 +505,13 @@ function setsettingchanged(index, subindex) {
     document.getElementById('status_setting_' + index + "_" + subindex).className = "form-group has-feedback has-warning";
     document.getElementById('btn_setting_' + index + "_" + subindex).className = "btn btn-warning";
     document.getElementById('icon_setting_' + index + "_" + subindex).className = "form-control-feedback has-warning ico_feedback";
-    document.getElementById('icon_setting_' + index + "_" + subindex).innerHTML = get_icon_svg("warning-sign");
+    document.getElementById('icon_setting_' + index + "_" + subindex).innerHTML = "<svg width='1.3em' height='1.2em' version='2.0'> <use href='#icon-warning-sign' /> </svg>";
 }
 
 function setsettingerror(index, subindex) {
     document.getElementById('btn_setting_' + index + "_" + subindex).className = "btn btn-danger";
     document.getElementById('icon_setting_' + index + "_" + subindex).className = "form-control-feedback has-error ico_feedback";
-    document.getElementById('icon_setting_' + index + "_" + subindex).innerHTML = get_icon_svg("remove");
+    document.getElementById('icon_setting_' + index + "_" + subindex).innerHTML = "<svg width='1.3em' height='1.2em' version='2.0'> <use href='#icon-remove' /> </svg>";
     document.getElementById('status_setting_' + index + "_" + subindex).className = "form-group has-feedback has-error";
 }
 
@@ -526,7 +524,7 @@ function setESPsettingsfailed(error_code, response) {
     console.log("Error " + error_code + " :" + response);
     document.getElementById('btn_setting_' + setting_lastindex + "_" + setting_lastsubindex).className = "btn btn-danger";
     document.getElementById('icon_setting_' + setting_lastindex + "_" + setting_lastsubindex).className = "form-control-feedback has-error ico_feedback";
-    document.getElementById('icon_setting_' + setting_lastindex + "_" + setting_lastsubindex).innerHTML = get_icon_svg("remove");
+    document.getElementById('icon_setting_' + setting_lastindex + "_" + setting_lastsubindex).innerHTML = "<svg width='1.3em' height='1.2em' version='2.0'> <use href='#icon-remove' /> </svg>";
     document.getElementById('status_setting_' + setting_lastindex + "_" + setting_lastsubindex).className = "form-group has-feedback has-error";
 }
 

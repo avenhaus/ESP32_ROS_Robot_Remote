@@ -277,10 +277,10 @@ InitUI();
 function uploadError()
 {
     if (esp_error_code != 0) {
-        alert('Update failed(' + esp_error_code + '): ' + esp_error_message);
+        alertdlg('Update failed(' + esp_error_code + '): ' + esp_error_message);
         esp_error_code = 0;
     } else {
-        alert('Update failed!');
+        alertdlg('Update failed!');
     }
     
     if (typeupload == 1) {
@@ -295,7 +295,7 @@ function uploadError()
 }
 
 function Uploadfile(){
-if (!confirm("Confirm Firmware Update ?"))return;
+if (!confirmdlg("Confirm Firmware Update ?"))return;
 var files = document.getElementById('fw-select').files;
 if (files.length==0)return;
 document.getElementById('ubut').style.visibility = 'hidden';
@@ -341,7 +341,7 @@ document.getElementById('fw-select').style.width = '0px';
 
 var jsonresponse = JSON.parse(xmlhttpupload.responseText);
 if (jsonresponse.status=='1' || jsonresponse.status=='4' || jsonresponse.status=='1')uploadError();
-if (jsonresponse.status=='2')alert('Update canceled!');
+if (jsonresponse.status=='2')alertdlg('Update canceled!');
 else if (jsonresponse.status=='3')
 {
     var i5 = 0;

@@ -128,11 +128,13 @@ void WebServer::run() {
 }
 
 void WebServer::handleRoot(AsyncWebServerRequest* request) {
+  #if ENABLE_SPIFFS_WEB_UI
   if (trySendFile(request, FST("/index.html"))) { return; }
   if (trySendFile(request, FST("/index.htm"))) { return; }
+  #endif
 
   #if ENABLE_EMBEDDED_WEB_UI
-    // Use built in WebUI
+    DEBUG_println(FST("Using embedded WebUI"));
     AsyncWebServerResponse* response = request->beginResponse_P(200, CT_TEXT_HTML, INDEX_HTML_GZ, INDEX_HTML_GZ_SIZE);
     response->addHeader(HDR_CONTENT_ENCODING, HDR_CE_GZIP);
     request->send(response);
@@ -456,10 +458,16 @@ bool WebServer::trySendFile(AsyncWebServerRequest* request, const char* p/*=null
 }
 
 void WebServer::handleNotFound(AsyncWebServerRequest* request) {
+  #if ENABLE_SPIFFS_WEB_CONTENT
   if (trySendFile(request)) { return; }
+  #endif
+
   if (checkCaptivePage(request)) { return; }
+  
+  #if ENABLE_SPIFFS_WEB_CONTENT
   if (trySendFile(request, FST("/404.htm"))) { return; }
   if (trySendFile(request, FST("/404.html"))) { return; }
+  #endif
 
   // Nothing found use default page
   String page = PAGE_NOT_FOUND;
