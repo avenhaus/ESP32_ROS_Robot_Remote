@@ -90,13 +90,13 @@ if(display_time){
  document.getElementById('path').innerHTML=navbar();}
 
 function Delete(filename){
-    if (confirmdlg("Confirm deletion of file: " + filename)) {
+    if (confirm("Confirm deletion of file: " + filename)) {
         SendCommand("delete",filename);
     }
 }
 
 function Deletedir(filename){
-    if (confirmdlg("Confirm deletion of directory: " + filename)) {
+    if (confirm("Confirm deletion of directory: " + filename)) {
         SendCommand("delete_dir",filename);
     }
 }

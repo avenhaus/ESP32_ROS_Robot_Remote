@@ -6,6 +6,7 @@
 #include "Command.h"
 #include "Files.h"
 #include "Helper.h"
+#include <Update.h>
 
 // Default Pages
 const char WebServer::PAGE_NOT_FOUND[] PROGMEM =
@@ -294,7 +295,7 @@ void WebServer::begin() {
 #endif // ENABLE_SPIFFS
 
   //web update
-  //server.on(FST("/updatefw"), HTTP_ANY, handleUpdate, WebUpdateUpload);
+  server.on(FST("/updatefw"), HTTP_POST, handleFwUpdate, handleFwUpdateUpload);
 
   //Direct SD management
   //server.on(FST("/upload"), HTTP_ANY, handleDirectSDFileList, SDFileDirectUpload);
@@ -403,6 +404,57 @@ void WebServer::handleSpiffsUpload(AsyncWebServerRequest *request, String filena
     if (!ec) { ec = EC_HTTP_OK; }
     response->setCode((int)(ec < 200 ? EC_BAD_REQUEST : ec));
     request->send(response);
+  }
+}
+
+void WebServer::handleFwUpdate(AsyncWebServerRequest *request) {
+  request->send(EC_BAD_REQUEST, CT_TEXT_PLAIN, FST("Please upload file"));
+}
+
+void WebServer::handleFwUpdateUpload(AsyncWebServerRequest *request, const String& filename, size_t index, uint8_t *data, size_t len, bool final) {
+  static int lastProgress = 0;
+  static uint32_t startTs = 0;
+
+  if (!index) {
+    DEBUG_printf(FST("Firmware Update: %s\n"), filename.c_str());
+    lastProgress = 0;
+    startTs = millis();
+
+    // if filename includes spiffs, update the spiffs partition
+    int cmd = (filename.indexOf(FST("spiffs")) > -1) ? U_SPIFFS : U_FLASH;
+    if (!Update.begin(UPDATE_SIZE_UNKNOWN, cmd)) {
+      Update.printError(Serial);
+    }
+  }
+
+  if (Update.write(data, len) != len) {
+    Update.printError(Serial);
+  }
+
+  int progress = (index+len) * 100 / request->contentLength();
+  if (progress != lastProgress) {
+    char buffer[32];
+    StrTool::formatDurationMs(buffer, sizeof(buffer), millis() - startTs);
+    DEBUG_printf("Progress: %d%% (%d) / %s\n", progress, index + len, buffer);
+    lastProgress = progress;
+  }
+
+  if (final) {
+    AsyncWebServerResponse *response = request->beginResponse(302, CT_TEXT_PLAIN, FST("Please wait while the device reboots"));
+    response->addHeader(FST("Refresh"), FST("20"));  
+    response->addHeader(FST("Location"), FST("/"));
+    request->send(response);
+    if (!Update.end(true)){
+      Update.printError(Serial);
+    } else {
+      char buffer[32];
+      StrTool::formatDurationMs(buffer, sizeof(buffer), millis() - startTs);
+      DEBUG_printf(FST("Update complete after: %s\n"), buffer);
+      Serial.flush();
+      delay(500);
+      DEBUG_println(FST("Restarting"));
+      ESP.restart();
+    }
   }
 }
 
