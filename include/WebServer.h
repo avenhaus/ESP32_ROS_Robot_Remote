@@ -66,8 +66,8 @@ protected:
   static void handleWebCommandSilent(AsyncWebServerRequest* request) { handleWebCommand_(request, true); }
   static void handleSpiffs(AsyncWebServerRequest* request);
   static void handleSpiffsUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final);
-  static void handleFwUpdate(AsyncWebServerRequest* request);
-  static void handleFwUpdateUpload(AsyncWebServerRequest* request, const String& filename, size_t index, uint8_t *data, size_t len, bool final);
+  static void handleUpdate(AsyncWebServerRequest* request);
+  static void handleUpdateUpload(AsyncWebServerRequest* request, const String& filename, size_t index, uint8_t *data, size_t len, bool final);
   static void cancelUpload(AsyncWebServerRequest* request);
   static void handleDirectSDFileList(AsyncWebServerRequest* request);
   static void SDFileDirectUpload(AsyncWebServerRequest* request);

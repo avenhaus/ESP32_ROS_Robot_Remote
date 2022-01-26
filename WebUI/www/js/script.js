@@ -313,7 +313,7 @@ var arg =  "/" + file.name + "S";
  formData.append('myfile[]', file, "/"+file.name);}
 typeupload = 0;
 xmlhttpupload = new XMLHttpRequest();
-xmlhttpupload.open('POST', '/updatefw', true);
+xmlhttpupload.open('POST', '/update', true);
 //progress upload event
 xmlhttpupload.addEventListener("progress", updateProgress, false);
 //progress function

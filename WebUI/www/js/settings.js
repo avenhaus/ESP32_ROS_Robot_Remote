@@ -183,20 +183,23 @@ function build_HTML_setting_list(filter) {
     for (var i = 0; i < setting_configList.length; i++) {
         var sentry = setting_configList[i];
         if (sentry.etype == "GROUP") {
-            content += "<div>";
-            if (sentry.level) { content += "<h3>"+ sentry.label + "</h3>"; }
+            content += "<div><h3";
+            if (sentry.level) { 
+                if (sentry.help) {
+                    content += " class='tooltip'><span class='tooltip-text'>" + sentry.help + " </span";
+                }
+                content += ">"+ sentry.label + "</h3>"; 
+            }
             content += "<table class=\"table table-bordered table-striped table-hover table-responsive\" style='width:auto;'><tbody>";
         } else if (sentry.etype == "GROUP_END") {
             content += "</tbody></table></div>"
         } else if (sentry.etype == "VAR" && (typeof sentry.C === 'undefined' || sentry.C.trim().toLowerCase() == filter) || (filter == "all")) {
             content += "<tr>";
             content += "<td style='vertical-align:middle'"
-            if (sentry.help) {content += " class='tooltip'";}
-            content += ">";
             if (sentry.help) {
-                content += "<span class='tooltip-text'>" + sentry.help + " </span>";
+                content += " class='tooltip'><span class='tooltip-text'>" + sentry.help + " </span";
             }
-            content += sentry.label;
+            content += ">" + sentry.label;
             content += "</td>";
             content += "<td style='vertical-align:middle'>";
             content += "<table><tr><td>" + build_control_from_index(i) + "</td></tr></table>";

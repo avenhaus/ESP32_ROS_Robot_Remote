@@ -295,7 +295,7 @@ void WebServer::begin() {
 #endif // ENABLE_SPIFFS
 
   //web update
-  server.on(FST("/updatefw"), HTTP_POST, handleFwUpdate, handleFwUpdateUpload);
+  server.on(FST("/update"), HTTP_POST, handleUpdate, handleUpdateUpload);
 
   //Direct SD management
   //server.on(FST("/upload"), HTTP_ANY, handleDirectSDFileList, SDFileDirectUpload);
@@ -407,11 +407,11 @@ void WebServer::handleSpiffsUpload(AsyncWebServerRequest *request, String filena
   }
 }
 
-void WebServer::handleFwUpdate(AsyncWebServerRequest *request) {
+void WebServer::handleUpdate(AsyncWebServerRequest *request) {
   request->send(EC_BAD_REQUEST, CT_TEXT_PLAIN, FST("Please upload file"));
 }
 
-void WebServer::handleFwUpdateUpload(AsyncWebServerRequest *request, const String& filename, size_t index, uint8_t *data, size_t len, bool final) {
+void WebServer::handleUpdateUpload(AsyncWebServerRequest *request, const String& filename, size_t index, uint8_t *data, size_t len, bool final) {
   static int lastProgress = 0;
   static uint32_t startTs = 0;
 
