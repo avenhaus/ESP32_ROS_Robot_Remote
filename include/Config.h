@@ -226,6 +226,7 @@ typedef enum ErrorCode {
     EC_OK,
     EC_ERROR=500,
     EC_UNKNOWN,
+    EC_TIMEOUT,
     EC_BAD_ARGUMENT,
     EC_HTTP_OK=200,
     EC_BAD_REQUEST=400,

@@ -18,6 +18,7 @@ time_t getEpochTime();
 uint32_t getMillisDelay(uint32_t frequency);
 size_t getIsoTime(char* buffer);
 size_t getTimeStr(char* buffer, const char* fmt);
+ErrorCode listWifiNetworksJson(Print& out, bool filterEmpty=true);
 
 void printMac(Print& s, uint8_t *mac);
 void wifiInfo(Print& s);

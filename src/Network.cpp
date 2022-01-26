@@ -7,6 +7,7 @@
 #include "Config.h"
 #include "Helper.h"
 #include "ConfigReg.h"
+#include "Command.h"
 #include "Secret.h"
 #include "Network.h"
 #include "TcpServer.h"
@@ -26,6 +27,14 @@ ConfigIpAddr configDNS(FST("DNS"), 0, FST("Domain Name Server"), 0, &configGroup
 
 ConfigBool configNetworkDisabled(FST("disabled"), 0, FST("Disable networking"), 0, &configGroupNetwork);
 
+Command cmdListNetorksJson(FST("networks"), 
+[] (const char* args, Print* stream) {
+  if (!stream) { return EC_OK; }
+  return listWifiNetworksJson(*stream);
+},
+FST("List WIFI networks as JSON"),
+nullptr, nullptr, CT_APP_JSON
+);
 
 int setenv(const char *, const char *, int);
 void tzset();
@@ -119,6 +128,8 @@ void networkInit() {
   setenv("TZ", "PST8PDT,M3.2.0,M11.1.0", 1);
   tzset();
 #endif
+
+  WiFi.scanNetworks(true); // Start Async scan so it's available later
 
 #ifdef USE_NETWORK_TASK
     xTaskCreate(
@@ -250,6 +261,56 @@ int32_t getWifiSignalStrength(int32_t RSSI) {
 
 void printMac(Print& s, uint8_t *mac) {
   s.printf(FST("%02X:%02X:%02X:%02X:%02X:%02X"), mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+}
+
+/*----------------------------------------------------------------------*\
+|* List WIFI Networks as JSON
+\*----------------------------------------------------------------------*/
+ ErrorCode listWifiNetworksJson(Print& out, bool filterEmpty/*=true*/) {
+  bool gotScan = false;
+  uint32_t timeout = millis() + 5000;
+  size_t count = 0;
+  while (!gotScan) {
+    if (millis() > timeout) {
+      out.print(FST("[]"));
+      return EC_ERROR;
+    }
+    // An initial async scanNetworks was issued at startup, so there
+    // is a good chance that scan information is already available.
+    int n = WiFi.scanComplete();
+    switch (n) {
+        case -2:                      // Scan not triggered
+            WiFi.scanNetworks(true);  // Begin async scan
+            delay(25);
+            break;
+    
+        case -1:  // Scan in progress
+            delay(25);
+            break;
+    
+        default:
+            out.write('[');
+            for (int i = 0; i < n; ++i) {
+                if (!filterEmpty || WiFi.SSID(i).length()) {
+                  if (count) { out.write(','); }
+                  out.print(FST("{\"SSID\":\"")); out.print(WiFi.SSID(i));
+                  out.print(FST("\",\"SIG\":")); out.print(getWifiSignalStrength(WiFi.RSSI(i)));
+                  out.print(FST(",\"ENC\":")); out.print(WiFi.encryptionType(i));
+                  out.write('}');
+                  count++;
+                }
+            }
+            out.write(']');
+            gotScan = true;
+            WiFi.scanDelete();
+            n = WiFi.scanComplete();
+            if (n == -2) {
+                WiFi.scanNetworks(true);
+            }
+            break;
+    }
+  }
+  return EC_OK;
 }
 
 
