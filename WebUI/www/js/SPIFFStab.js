@@ -35,7 +35,7 @@ if (currentpath!="/")
     {
      var pos = currentpath.lastIndexOf("/",currentpath.length-2);
      var previouspath = currentpath.slice(0,pos+1);
-     content +="<tr style='cursor:hand;' onclick=\"currentpath='"+previouspath+"'; SendCommand('list','');\"><td >"+"<svg width='24' height='24' viewBox='0 0 24 24' version=\"2.0\"> <use href=\"#icon-back\" /> </svg>"+"</td><td colspan='4'> Up..</td></tr>";
+     content +="<tr style='cursor:hand;' onclick=\"currentpath='"+previouspath+"'; SendCommand('list','');\"><td >"+"<svg width='24' height='24' viewBox='0 0 24 24' version=\"2.0\"> <use href=\"#icon-back\" /> </svg>"+"</td><td colspan='4'> Up..</td><td></td><td></td></tr>";
     }
 jsonresponse.files.sort(function(a, b) {
     return compareStrings(a.name, b.name);
@@ -60,9 +60,12 @@ if (String(jsonresponse.files[i1].size) != "-1")
     } else {
     content +="<TD></TD>";    
     }
-    content +="<TD width='0%'><div class=\"btnimg\" onclick=\"Delete('"+jsonresponse.files[i1].name+"')\">";
-    content +="<svg width='24' height='24' viewBox='0 0 128 128' version=\"2.0\" style='color:red;'> <use href=\"#icon-trash\" /> </svg>";
-    content +="</div></TD><td></td></TR>";
+    content +="<TD width='0%'><div class=\"btnimg\" onclick=\"DeleteFile('"+jsonresponse.files[i1].name+"')\">";
+    content +="<svg width='24' height='24' viewBox='0 0 128 128' version=\"2.0\" style='color:red;'> <use href=\"#icon-trash\" /> </svg></div></TD>";
+    content +="<TD width='0%'><div class=\"btnimg\" onclick=\"RenameFile('"+jsonresponse.files[i1].name+"')\">";
+    content +="<svg width='24' height='24' viewBox='0 0 128 128' version=\"2.0\" style='color:#888;'> <use href=\"#icon-edit\" /> </svg></div></TD>";
+    //content +="<TD width='0%'><input class='btn btn-primary' type='button' style='padding: 3px 6px; background-color:#5bc0de;' onclick=\"Rename('"+jsonresponse.files[i1].name+"')\" value='Rename'/></TD>";
+    content +="<td></td></TR>";
     }
 }
 //then display directories
@@ -76,9 +79,11 @@ if (String(jsonresponse.files[i2].size) == "-1")
     if (typeof jsonresponse.files[i2].hasOwnProperty('time')){
         display_time = true;
     }
-    content +="<TD width='0%'><div class=\"btnimg\" onclick=\"Deletedir('"+jsonresponse.files[i2].name+"')\">";
-    content +="<svg width='24' height='24' viewBox='0 0 128 128' version=\"2.0\" style='color:red;'> <use href=\"#icon-trash\" /> </svg>"
-    content +="</div></TD><td></td></TR>";
+    content +="<TD width='0%'><div class=\"btnimg\" onclick=\"DeleteDir('"+jsonresponse.files[i2].name+"')\">";
+    content +="<svg width='24' height='24' viewBox='0 0 128 128' version=\"2.0\" style='color:red;'> <use href=\"#icon-trash\" /> </svg></div></TD>";
+    content +="<TD width='0%'><div class=\"btnimg\" onclick=\"RenameDir('"+jsonresponse.files[i2].name+"')\">";
+    content +="<svg width='24' height='24' viewBox='0 0 128 128' version=\"2.0\" style='color:#888;'> <use href=\"#icon-edit\" /> </svg></div></TD>";
+    content +="<td></td></TR>";
     }
 }
 if(display_time){
@@ -89,32 +94,50 @@ if(display_time){
  document.getElementById('file_list').innerHTML=content;
  document.getElementById('path').innerHTML=navbar();}
 
-function Delete(filename){
+function DeleteFile(filename) {
     if (confirm("Confirm deletion of file: " + filename)) {
         SendCommand("delete",filename);
     }
 }
 
-function Deletedir(filename){
+function DeleteDir(filename) {
     if (confirm("Confirm deletion of directory: " + filename)) {
         SendCommand("delete_dir",filename);
     }
 }
 
-function Createdir(){
+function CreateDir() {
 var filename = prompt("Directory name", "");
 if (filename != null) {
    SendCommand("create_dir",filename.trim());
    }
 }
 
-function SendCommand(action, filename){
+function RenameFile(currentName) {
+    var newName = prompt("New file name", "");
+    if (newName != null) {
+       SendCommand("rename_file", currentName.trim(), newName.trim());
+       }
+}
+
+function RenameDir(currentName) {
+    var newName = prompt("New directory name", "");
+    if (newName != null) {
+       SendCommand("rename_dir", currentName.trim(), newName.trim());
+       }
+}
+
+
+function SendCommand(action, filename) { SendCommand(action, filename, ""); }
+
+function SendCommand(action, filename, newName) {
 var xmlhttp = new XMLHttpRequest();
 var url = "/files?action="+action;
 //document.getElementById('MSG').style.display = "block";
 //document.getElementById('MSG').innerHTML = "Connecting...";
-url += "&filename="+encodeURI(filename);
 url += "&path="+encodeURI(currentpath);
+url += "&filename="+encodeURI(filename);
+if (newName) {url += "&new-name="+encodeURI(newName);}
 xmlhttp.onreadystatechange = function() {
     if (xmlhttp.readyState == 4 ) {
         if(xmlhttp.status == 200) {

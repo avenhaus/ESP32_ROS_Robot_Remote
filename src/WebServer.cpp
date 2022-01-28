@@ -314,6 +314,7 @@ void WebServer::begin() {
 const char* ARG_PATH PROGMEM = "path";
 const char* ARG_ACTION PROGMEM = "action";
 const char* ARG_FILENAME PROGMEM = "filename";
+const char* ARG_NEW_NAME PROGMEM = "new-name";
 
 void WebServer::handleSpiffs(AsyncWebServerRequest* request) {
 
@@ -330,22 +331,27 @@ void WebServer::handleSpiffs(AsyncWebServerRequest* request) {
     if (request->hasArg(ARG_ACTION)) {
       const char* action = request->arg(ARG_ACTION).c_str();
       const char* filename = request->hasArg(ARG_FILENAME) ? request->arg(ARG_FILENAME).c_str() : nullptr;
+      const char* newName = request->hasArg(ARG_NEW_NAME) ? request->arg(ARG_NEW_NAME).c_str() : nullptr;
+      DEBUG_printf(FST("CMD: %s path:%s\n"), action, path.c_str());
       if (!strcmp(FST("list"), action)) {
         s.print(FST("Ok"));
         aec = EC_OK;
       } else {
-        if (filename && *filename) { 
-          if (path.length() > 1 && path[path.length()-1] != '/') { path += '/'; } 
-          path += filename; 
-        }      
-        if (!strcmp(FST("delete"), action) && filename) {
-          aec = spiffsDeleteFile(path.c_str(), &s);
+        if (path.length() > 1 && path[path.length()-1] != '/') { path += '/'; }
+        if (!strcmp(FST("delete_file"), action) && filename) {
+          aec = spiffsDeleteFile((path+filename).c_str(), &s);
         }
         else if (!strcmp(FST("delete_dir"), action) && filename) {
-          aec = spiffsDeleteDir(path.c_str(), &s);
+          aec = spiffsDeleteDir((path+filename).c_str(), &s);
         }
         else if (!strcmp(FST("create_dir"), action) && filename) {
-          aec = spiffsCreateDir(path.c_str(), &s);
+          aec = spiffsCreateDir((path+filename).c_str(), &s);
+        }
+        else if (!strcmp(FST("rename_file"), action) && filename && newName) {
+          aec = spiffsRename((path+filename).c_str(), (path+newName).c_str(), &s);
+        }
+        else if (!strcmp(FST("rename_dir"), action) && filename && newName) {
+          aec = spiffsRenameDir((path+filename).c_str(), (path+newName).c_str(), &s);
         } else {
           s.print(FST("invalid action: "));
           s.print(action);

@@ -14,6 +14,7 @@ ErrorCode spiffsCreateDir(const char* path, Print* s);
 ErrorCode spiffsRead(const char* path, Print& s);
 ErrorCode spiffsWrite(const char* path, const char* data, size_t size, Print* s);
 ErrorCode spiffsRename(const char* oldPath, const char* newPath, Print* s);
+ErrorCode spiffsRenameDir(const char* oldPath, const char* newPath, Print* s);
 
 #endif // ENABLE_SPIFFS
 #endif // _SPIFFS_CMD_H_

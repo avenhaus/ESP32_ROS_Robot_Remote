@@ -114,6 +114,27 @@ Command cmdSpiffsRename(FST("mv"),
 FST("Rename file on SPIFFS"), &cmdRegSpiffs, FST("<old> <new>")
 );
 
+
+Command cmdSpiffsRenameDir(FST("mvdir"), 
+[] (const char* args, Print* stream) {
+    if (!args || !*args) {
+        if (stream) { stream->println(FST("no path")); }
+        return EC_BAD_REQUEST;
+    }
+    const char* newPath = args;
+    while (*newPath && *newPath != ' ') { newPath++; }
+    char oldPath[128];
+    size_t n = std::min(sizeof(oldPath)-1, (size_t)(newPath-args));
+    memcpy(oldPath, args, n);
+    oldPath[n] = '\0';
+    while (*newPath && *newPath == ' ') { newPath++; }
+    ErrorCode ec = spiffsRenameDir(oldPath, newPath, stream);
+    stream->println();
+    return ec;
+},
+FST("Rename directory on SPIFFS"), &cmdRegSpiffs, FST("<old> <new>")
+);
+
 /*----------------------------------------------------------------------*\
 | SPIFFS functions
 \*----------------------------------------------------------------------*/
@@ -158,18 +179,66 @@ ErrorCode spiffsDeleteDir(const char* path, Print* s) {
   ErrorCode ec = EC_OK;
   File dir = SPIFFS.open(path);
   {
-      File file2deleted = dir.openNextFile();
-      while (file2deleted) {
-          const char* fullpath = file2deleted.name();
+      File file = dir.openNextFile();
+      while (file) {
+          const char* fullpath = file.name();
           if (!SPIFFS.remove(fullpath)) {
               ec = EC_ERROR;
               if(s) { s->print(fullpath); s->print(FST(" failed to delete")); }
           }
-          file2deleted = dir.openNextFile();
+          file = dir.openNextFile();
       }
   }
   if (!ec && s) { s->print(path); s->print(FST(" deleted")); }
   return ec;
+}
+
+ErrorCode spiffsRenameDir(const char* oldPath, const char* newPath, Print* s) {
+    if (!oldPath || !*oldPath) {
+        if (s) { s->print(FST("no old path")); }
+        return EC_BAD_REQUEST;
+    }
+    if (!newPath || !*newPath) {
+        if (s) { s->print(FST("no new path")); }
+        return EC_BAD_REQUEST;
+    }
+    if (!strcmp(oldPath, ROOT_DIR)) {
+        if(s) { s->print(FST("can not rename root")); }
+        return EC_BAD_REQUEST;
+    }
+
+    size_t oldLen = strlen(oldPath);
+    if (oldPath[oldLen-1] != '/') { oldLen++; }
+    char newName[128];
+    size_t newLen = 0;
+
+    File dir = SPIFFS.open(oldPath);
+    if (!dir) {
+        if (s) { s->print(oldPath); s->print(FST(" does not exist!")); }
+        return EC_BAD_REQUEST;
+    } 
+
+    while (newPath[newLen] && newLen < sizeof(newName)-3) { newName[newLen] = newPath[newLen]; newLen++; }
+    if (newName[newLen-1] != '/') { newName[newLen++] = '/'; }
+    ErrorCode ec = EC_OK;
+    {
+        File file = dir.openNextFile();
+        while (file) {
+            const char* oldName = file.name();
+            size_t n = oldLen;
+            size_t m = newLen;
+            while (newName[n] && m < sizeof(newName)-2) { newName[m++] = oldName[n++]; }
+            newName[m] = '\0';
+            DEBUG_printf(FST("Rename %s to %s\n"), oldName, newName);
+            if (!SPIFFS.rename(oldName, newName)) {
+                if (s) { s->print(oldName); s->print(FST(" failed to rename to ")); s->print(newName); }
+                return EC_ERROR;
+            }
+            file = dir.openNextFile();
+        }
+    }
+    if (!ec && s) { s->print(oldPath); s->print(FST(" renamed")); }
+    return ec;
 }
 
 ErrorCode spiffsCreateDir(const char* path, Print* s) {
