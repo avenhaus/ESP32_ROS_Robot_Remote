@@ -21,13 +21,14 @@
 ConfigGroup* ConfigGroup::mainGroup = nullptr;
 size_t ConfigVar::count_ = 0;
 
+
 /************************************************************************\
 |* Global Functions
 \************************************************************************/
 
 void saveConfig() {
   char buffer[CONFIG_BUFFER_SIZE];
-  size_t size = ConfigGroup::mainGroup->toJsonStr(buffer, sizeof(buffer), true);
+  size_t size = ConfigGroup::mainGroup->toJsonStr(buffer, sizeof(buffer), true, CVF_SHOW_PASSWORD);
   if (size >= CONFIG_BUFFER_SIZE-1) {
     DEBUG_printf(FST("!!! Not enough buffer space (%d) to save config to EEPROM !!!\n"), CONFIG_BUFFER_SIZE);
     return;
@@ -104,7 +105,7 @@ void defaultConfig() {
 |* Config Group
 \************************************************************************/
 
-size_t ConfigGroup::toJsonStr(char* buffer, size_t size, bool noName) {
+size_t ConfigGroup::toJsonStr(char* buffer, size_t size, bool noName, uint16_t flags/*=0*/, uint8_t flagsMask/*=0*/) {
     size_t n = 0;
     if (!noName) { n += StrTool::toJsonName(buffer+n, size-n, name_); }
     if (n < size-1) { buffer[n++] = '{'; }
@@ -112,19 +113,19 @@ size_t ConfigGroup::toJsonStr(char* buffer, size_t size, bool noName) {
     for(auto v: vars_) {
       if (!first && (n < size-1)) { buffer[n++] = ','; }
       first = false; 
-      n += v->toJsonStr(buffer+n, size-n);
+      n += v->toJsonStr(buffer+n, size-n, false, flags, flagsMask);
     }
     for(auto g: children_) {
       if (!first && (n < size-1)) { buffer[n++] = ','; }
       first = false; 
-      n += g->toJsonStr(buffer+n, size-n);
+      n += g->toJsonStr(buffer+n, size-n, false, flags, flagsMask);
     }
     if (n < size-1) { buffer[n++] = '}'; }
     buffer[n] = '\0';
     return n;
 }
 
-size_t ConfigGroup::toJson(Print* stream, bool noName) {
+size_t ConfigGroup::toJson(Print* stream, bool noName, uint16_t flags/*=0*/, uint8_t flagsMask/*=0*/) {
     char buffer[128];
     size_t size = sizeof(buffer);
     size_t n = 0;
@@ -135,20 +136,20 @@ size_t ConfigGroup::toJson(Print* stream, bool noName) {
     for(auto v: vars_) {
       if (!first) { stream->write(','); n++; }
       first = false; 
-      size_t m = v->toJsonStr(buffer, size);
+      size_t m = v->toJsonStr(buffer, size, false, flags, flagsMask);
       stream->write(buffer, m);
       n += m;
     }
     for(auto g: children_) {
       if (!first) { stream->write(','); n++; }
       first = false; 
-      n += g->toJson(stream);
+      n += g->toJson(stream, false, flags, flagsMask);
     }
     stream->write('}'); n++;
     return n;
 }
 
-size_t ConfigGroup::getWebUi(Print* stream, bool noName) {
+size_t ConfigGroup::getWebUi(Print* stream, bool noName, uint16_t flags/*=0*/, uint8_t flagsMask/*=0*/) {
     char buffer[128];
     size_t size = sizeof(buffer);
     size_t n = 0;
@@ -164,7 +165,7 @@ size_t ConfigGroup::getWebUi(Print* stream, bool noName) {
       if (!v->isHidden()) {
         if (!first) { stream->write(','); n++; }
         first = false; 
-        size_t m = v->getWebUi(stream);
+        size_t m = v->getWebUi(stream, flags, flagsMask);
         n += m;
       }
     }
@@ -172,7 +173,7 @@ size_t ConfigGroup::getWebUi(Print* stream, bool noName) {
     for(auto g: children_) {
       if (!first) { stream->write(','); n++; }
       first = false; 
-      n += g->getWebUi(stream);
+      n += g->getWebUi(stream, false, flags, flagsMask);
     }
     stream->write('}'); n++;
     return n;

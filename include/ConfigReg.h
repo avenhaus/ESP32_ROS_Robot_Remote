@@ -56,7 +56,8 @@ static const uint8_t CVF_PASSWORD =      (uint8_t)(1<<3);
 static const uint8_t CVF_WIZARD =        (uint8_t)(1<<4);
 static const uint8_t CVF_IMPORTANT =     (uint8_t)(1<<5);
 static const uint8_t CVF_COLLAPSED =     (uint8_t)(1<<6);
-static const uint8_t CVF_SHOW_PASSWORD = (uint8_t)(1<<8);
+
+static const uint16_t CVF_SHOW_PASSWORD = (uint16_t)(1<<8);
 
 
 /************************************************************************\
@@ -153,9 +154,9 @@ public:
     void removeVar(ConfigVar* var) { size_t tmp=vars_.size(); remove(vars_.begin(), vars_.end(), var); updateVarCount_(vars_.size() - tmp); }
     ConfigVar* findVar(const char* name);
     ConfigVar* findVarByFullName(const char* name, bool matchCase=true);
-    size_t toJsonStr(char* buffer, size_t size, bool noName=false);
-    size_t toJson(Print* stream, bool noName=false);
-    size_t getWebUi(Print* stream, bool noName=false);
+    size_t toJsonStr(char* buffer, size_t size, bool noName=false, uint16_t flags=0, uint8_t flagsMask=0);
+    size_t toJson(Print* stream, bool noName=false, uint16_t flags=0, uint8_t flagsMask=0);
+    size_t getWebUi(Print* stream, bool noName=false, uint16_t flags=0, uint8_t flagsMask=0);
     bool setFromJson(const JsonObject& obj);
     void setDefaults();
     inline const char* name() { return name_; }
@@ -223,10 +224,10 @@ public:
     }
     virtual size_t print(Print& stream) = 0;
     virtual size_t toStr(char* buffer, size_t size) = 0;
-    virtual size_t toJsonStr(char* buffer, size_t size, bool noName=false) = 0;
+    virtual size_t toJsonStr(char* buffer, size_t size, bool noName=false, uint16_t flags=0, uint8_t flagsMask=0) = 0;
     virtual bool setFromJson(const JsonVariant& jv) = 0;
     virtual size_t setFromStr(const char* valStr, const char** errorStr=nullptr) = 0;
-    virtual size_t getWebUi(Print* stream) = 0;
+    virtual size_t getWebUi(Print* stream, uint16_t flags=0, uint8_t flagsMask=0) = 0;
     virtual void setDefault() = 0;
     inline const char* name() { return name_; }
     inline const char* fmt() { return fmt_; }
@@ -299,7 +300,8 @@ public:
         return n;        
     }
 
-    virtual size_t toJsonStr(char* buffer, size_t size, bool noName=false) {
+    virtual size_t toJsonStr(char* buffer, size_t size, bool noName=false, uint16_t flags=0, uint8_t flagsMask=0) {
+        if ((flags_ ^ flags) & flagsMask) { return 0; }
         size_t n = 0;
         if (!noName) { n += StrTool::toJsonName(buffer+n, size-n, name_); }
         return n + toStr(buffer+n, size-n);
@@ -325,7 +327,8 @@ public:
         set(default_);
     }
 
-    virtual size_t getWebUi(Print* stream) {
+    virtual size_t getWebUi(Print* stream, uint16_t flags=0, uint8_t flagsMask=0) {
+        if ((flags_ ^ flags) & flagsMask) { return 0; }
         size_t n = getWebUiCommon_(stream);
         get();
         n += stream->printf(FST(",\"V\":%d"), value_);  // Value
@@ -465,7 +468,8 @@ public:
         return n;
     }
 
-    virtual size_t toJsonStr(char* buffer, size_t size, bool noName=false) {
+    virtual size_t toJsonStr(char* buffer, size_t size, bool noName=false, uint16_t flags=0, uint8_t flagsMask=0) {
+        if ((flags_ ^ flags) & flagsMask) { return 0; }
         size_t n = 0;
         if (!noName) { n += StrTool::toJsonName(buffer+n, size-n, name_); }
         return n + toStr(buffer+n, size-n);
@@ -541,7 +545,8 @@ public:
     }
 
     inline size_t size() { return size_; }
-    virtual size_t getWebUi(Print* stream) {
+    virtual size_t getWebUi(Print* stream, uint16_t flags=0, uint8_t flagsMask=0) {
+        if ((flags_ ^ flags) & flagsMask) { return 0; }
         char buffer[32];
         size_t n = getWebUiCommon_(stream);
         n += stream->print(FST(",\"V\":["));  // Value
@@ -589,12 +594,17 @@ public:
         buffer[n] = '\0';
         return n;
     }
-    virtual size_t toJsonStr(char* buffer, size_t size, bool noName=false) {
+    virtual size_t toJsonStr(char* buffer, size_t size, bool noName=false, uint16_t flags=0, uint8_t flagsMask=0) {
+        if ((flags_ ^ flags) & flagsMask) { return 0; }
         size_t n = 0;
         if (!noName) { n += StrTool::toJsonName(buffer+n, size-n, name_); }
-        if (n < size-2) { buffer[n++]= '"'; }
-        n += toStr(buffer+n, size-n - 1);
-        if (n < size-2) { buffer[n++]= '"'; }
+        if (n < size-2) { buffer[n++] = '"'; }
+        if (isPassword() && !(flags & CVF_SHOW_PASSWORD)) {
+            for (size_t i=0; i < 8; i++) { if (n < size-2) buffer[n++] = '*'; }
+        } else {
+            n += toStr(buffer+n, size-n - 1);
+        }
+        if (n < size-2) { buffer[n++] = '"'; }
         buffer[n]= '\0';
         return n;
     }
@@ -616,10 +626,13 @@ public:
         return n;
     }
 
-    virtual size_t getWebUi(Print* stream) {
+    virtual size_t getWebUi(Print* stream, uint16_t flags=0, uint8_t flagsMask=0) {
+        if ((flags_ ^ flags) & flagsMask) { return 0; }
         size_t n = getWebUiCommon_(stream);
         get();
-        n += stream->printf(FST(",\"V\":\"%s\""), value_);  // Value
+        if (isPassword() && !(flags & CVF_SHOW_PASSWORD)) {
+            n += stream->print(FST(",\"V\":\"********\""));
+        } else { n += stream->printf(FST(",\"V\":\"%s\""), value_); } 
         n += stream->printf(FST(",\"S\":%d"), size_-1);  // Max
         n += stream->printf(FST(",\"M\":%d"), 0);  // Min
         stream->write('}'); n++;        
@@ -734,7 +747,8 @@ public:
         buffer[n] = '\0';
         return n;
     }
-    virtual size_t toJsonStr(char* buffer, size_t size, bool noName=false) {
+    virtual size_t toJsonStr(char* buffer, size_t size, bool noName=false, uint16_t flags=0, uint8_t flagsMask=0) {
+        if ((flags_ ^ flags) & flagsMask) { return 0; }
         size_t n = 0;
         if (!noName) { n += StrTool::toJsonName(buffer+n, size-n, name_); }
         if (n < size-2) { buffer[n++]= '"'; }
@@ -749,7 +763,8 @@ public:
         if (n) { set(ip); }
         return n;
     }
-    virtual size_t getWebUi(Print* stream) {
+    virtual size_t getWebUi(Print* stream, uint16_t flags=0, uint8_t flagsMask=0) {
+        if ((flags_ ^ flags) & flagsMask) { return 0; }
         size_t n = getWebUiCommon_(stream);
         get();
         n += stream->printf(FST(",\"V\":\"%d.%d.%d.%d\""), value_[0], value_[1], value_[2], value_[3]);  // Value
