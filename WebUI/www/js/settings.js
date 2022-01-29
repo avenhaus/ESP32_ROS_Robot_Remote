@@ -9,8 +9,9 @@ var EP_STA_SSID = "WIFI.SSID";
 
 
 function settingsTab() {
+    console.log("SettingsTab")
     opentab('settingstab', 'mainuitabscontent', 'mainuitablinks'); 
-    build_HTML_setting_list('all'); 
+    setup_is_done = true;
 }
 
 function saveConfig() {
@@ -34,6 +35,7 @@ function saveESPsettingsFailed(error_code, response) {
 }
 
 function refreshSettings(hide_setting_list) {
+    console.log("refreshSettings");
     if (http_communication_locked) {
         document.getElementById('config_status').innerHTML = "Communication locked by another process, retry later.";
         return;
@@ -175,6 +177,7 @@ function build_control_from_index(index, extra_set_function) {
 }
 
 function build_HTML_setting_list(filter) {
+    console.log("build_HTML_setting_list: ", setting_configList.length)
     //this to prevent concurent process to update after we clean content
     //if (do_not_build_settings) return;
     var content = "";
@@ -183,13 +186,14 @@ function build_HTML_setting_list(filter) {
     for (var i = 0; i < setting_configList.length; i++) {
         var sentry = setting_configList[i];
         if (sentry.etype == "GROUP") {
-            content += "<div><h3";
+            content += "<div>";
             if (sentry.level) { 
+                content += "<h3";
                 if (sentry.help) {
                     content += " class='tooltip'><span class='tooltip-text'>" + sentry.help + " </span";
                 }
                 content += ">"+ sentry.label + "</h3>"; 
-            }
+            } else { content += "<br>"}
             content += "<table class=\"table table-bordered table-striped table-hover table-responsive\" style='width:auto;'><tbody>";
         } else if (sentry.etype == "GROUP_END") {
             content += "</tbody></table></div>"
@@ -277,6 +281,7 @@ function process_settings_group(name, level, gpath, group) {
 }
 
 function process_settings_answer(response_text) {
+    // console.log("process_settings_answer");
     var result = 0;
     try {
         var response = JSON.parse(response_text);

@@ -413,6 +413,8 @@ void WebServer::handleSpiffsUpload(AsyncWebServerRequest *request, String filena
   }
 }
 
+#endif // ENABLE_SPIFFS
+
 void WebServer::handleUpdate(AsyncWebServerRequest *request) {
   request->send(EC_BAD_REQUEST, CT_TEXT_PLAIN, FST("Please upload file"));
 }
@@ -605,4 +607,3 @@ void Web_Server::SPIFFSFileupload() {
     COMMANDS::wait(0);
 }
 */
-#endif // ENABLE_SPIFFS

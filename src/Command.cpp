@@ -179,7 +179,12 @@ CommandRegistry cmdRegConfig(FST("config"));
 
 Command cmdBasicConfig(FST("basics"), 
 [] (const char* args, Print* stream) {
-    stream->printf(FST("FW version: %s %s # FW HW:No SD  # primary sd:/sd # authentication:no # webcommunication: Sync: /ws # hostname:%s\n"),
+    #if ENABLE_SPIFFS
+      #define SPIFFS_LOC "/sd"
+    #else
+      #define SPIFFS_LOC "No SD"
+    #endif // ENABLE_SPIFFS
+    stream->printf(FST("FW name: %s # FW version: %s # primary sd:" SPIFFS_LOC " # secondary sd:No SD # authentication:no # webcommunication: Sync: /ws # hostname:%s\n"),
     PROJECT_NAME, VERSION_NUMBER, fullHostname);
     return EC_OK;
 },

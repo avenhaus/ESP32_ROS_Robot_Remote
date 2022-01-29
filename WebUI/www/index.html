@@ -15,7 +15,7 @@
     </head>
     <body> 
         <div class="panel">
-        <center><h2 id="FWVERSION">ESP32 Project</h2>
+        <center><h2 id="FW_NAME">ESP32 Project</h2>
             <table>
             <tr>
                 <td style='padding:10px' class="tooltip">
@@ -24,7 +24,7 @@
                         <svg width='1.3em' height='1.2em' version="2.0"> <use href="#icon-th-list" /> </svg>
                     </button>
                 </td>
-                <td style='padding:10px' class="tooltip">
+                <td style='padding:10px; display:none' class="tooltip" id="spiffs-button">
                     <span class="tooltip-text">Manage local files</span>
                     <button type="button" class="btn btn-success" onclick="SPIFFStab('/');">
                         <svg width='1.3em' height='1.2em' version="2.0"> <use href="#icon-folder-open" /> </svg>

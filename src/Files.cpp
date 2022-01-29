@@ -7,10 +7,9 @@
 #include "Command.h"
 #include "Files.h"
 
-static const char* ROOT_DIR PROGMEM = "/";
-
 #if ENABLE_SPIFFS
 
+static const char* ROOT_DIR PROGMEM = "/";
 
 /*----------------------------------------------------------------------*\
 | SPIFFS command registry

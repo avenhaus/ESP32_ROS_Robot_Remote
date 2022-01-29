@@ -11,6 +11,9 @@ var esp_error_code = 0;
 var interval_ping = -1;
 var last_ping = 0;
 var enable_ping = false;
+var spiffs_path = "";
+var FW_NAME = "ESP32 Project";
+var FW_VERSION = 0.0
 
 function navbar(){
     var content="<table><tr>";
@@ -55,9 +58,10 @@ function FWError(){
     HideAll("Failed to communicate with FW!");
 }
 
-function FWOk(){
+function FWOk() {
     //document.getElementById('MSG').innerHTML = "Connected";
-    SPIFFStab();
+    settingsTab();
+    if (spiffs_path) { SendCommand('list',''); }
 }
 
 function InitUI(){
@@ -71,27 +75,41 @@ authentication = false;
 async_webcommunication = false;
 console.log("Init UI");
 xmlhttp.onreadystatechange = function() {
-    console.log("XML HTTP Ready: " + xmlhttp.readyState + xmlhttp.status + xmlhttp.responseText);
     if (xmlhttp.readyState == 4 ) { 
-        console.log("XML HTTP Ready");
+        console.log("XML HTTP Ready: " + xmlhttp.status, xmlhttp.responseText);
         var error = false;
         if(xmlhttp.status == 200) {
         var response = xmlhttp.responseText;
-        console.log("XML HTTP Ready" + response);
         var nbitem = 0;
         var tresp = response.split("#");
-        console.log(xmlhttp.responseText);
         if (tresp.length < 3) {
             error = true;
         } else {
-            //FW version: ESP32 project 0.2 # FW HW:No SD  # primary sd:/sd # authentication:no # webcommunication: Sync: /ws # hostname:esp-57CC
+            //FW name: ESP32 project # FW version: 0.2 # primary sd:/sd # secondary sd:No SD # authentication:no # webcommunication: Sync: /ws # hostname:esp-57CC
             for (var p=0; p < tresp.length; p++){
-             var sublist = tresp[p].split(":");
+              var sublist = tresp[p].split(":");
+              if (sublist[0].trim() == "FW name") {
+                FW_NAME =  sublist[1];
+                document.getElementById('FW_NAME').innerHTML = FW_NAME;
+                nbitem++;
+              }
              if (sublist[0].trim() == "FW version"){
-                 document.getElementById('FWVERSION').innerHTML = sublist[1];
+                 FW_VERSION =  sublist[1];
+                 //document.getElementById('FW_VERSION').innerHTML = sublist[1];
                  nbitem++;
              }
-             if (sublist[0].trim() == "authentication"){
+             if (sublist[0].trim() == "primary sd") {
+                if (sublist[1].trim() == "No SD") {
+                } else {
+                    document.getElementById("spiffs-button").style.display = "block";
+                    spiffs_path = sublist[1].trim();
+                }
+                nbitem++;
+            }
+            if (sublist[0].trim() == "secondary sd") {
+                nbitem++;
+            }
+            if (sublist[0].trim() == "authentication"){
                  /*
                  if (sublist[1].trim() == "no") {
                      authentication = false;
@@ -124,15 +142,11 @@ xmlhttp.onreadystatechange = function() {
                  nbitem++
              }
             }
-            if (nbitem == 4) {
-            //removeIf(production)
-                if(false)
-            //endRemoveIf(production)
-               SendCommand('list','');
-                FWOk();
+            if (nbitem == 7) {
+               FWOk();
             } else {
+                console.log("Invalid basic config items: " + nbitem);
                 error = true;
-                
             }
         }
             
@@ -150,7 +164,7 @@ xmlhttp.onreadystatechange = function() {
     //removeIf(production)
     xmlhttp.readyState = 4;
     xmlhttp.status = 200;
-    xmlhttp.responseText = "FW version: ROS Remote 0.2 # FW HW:No SD  # primary sd:/sd # authentication:no # webcommunication: Async # hostname:ROS-remote-57CC";
+    xmlhttp.responseText = "FW version: ROS Remote 0.2 # primary sd:/sd # secondary sd:No SD # authentication:no # webcommunication: Async # hostname:ROS-remote-57CC";
     xmlhttp.onreadystatechange();
     return;
     //endRemoveIf(production)
