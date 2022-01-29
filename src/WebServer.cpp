@@ -217,9 +217,6 @@ void WebServer::handleWebCommand_(AsyncWebServerRequest* request, bool silent) {
     }
     DEBUG_println(cmdStr);
 
-    // if (cmdStr == "[ESP800]") {cmdStr="config.basics";}
-    // else if (cmdStr == "[ESP400]") {cmdStr="config.ui";}
-
     const char* cmd = cmdStr.c_str();
     Command* sCmd = CommandRegistry::mainCmdReg->findCmdByFullName(cmd, false);
     if (!sCmd) {
