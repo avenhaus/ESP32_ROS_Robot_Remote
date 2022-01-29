@@ -28,7 +28,7 @@ size_t ConfigVar::count_ = 0;
 
 void saveConfig() {
   char buffer[CONFIG_BUFFER_SIZE];
-  size_t size = ConfigGroup::mainGroup->toJsonStr(buffer, sizeof(buffer), true, CVF_SHOW_PASSWORD);
+  size_t size = ConfigGroup::mainGroup->toJsonStr(buffer, sizeof(buffer), true, CVF_SHOW_PASSWORD, CVF_NOT_PERSISTED);
   if (size >= CONFIG_BUFFER_SIZE-1) {
     DEBUG_printf(FST("!!! Not enough buffer space (%d) to save config to EEPROM !!!\n"), CONFIG_BUFFER_SIZE);
     return;
