@@ -11,8 +11,8 @@
 \*======================================================================*/
 
 
-#ifndef _CONFIG_VAR_H_
-#define _CONFIG_VAR_H_
+#ifndef _CONFIG_REG_H_
+#define _CONFIG_REG_H_
 
 #include <Arduino.h>
 #include <vector>
@@ -430,7 +430,7 @@ public:
     }
     virtual ~ConfigArrayT() { delete [] value_; }
 
-    virtual T* get() {
+    virtual const T* get() {
         if (ptr_) { for (size_t n=0; n<size_; n++) { value_[n] = ptr_[n]; } }
         if (getCb_) { getCb_(value_, cbData_); }
         return value_;
@@ -581,6 +581,8 @@ public:
     ConfigStr(const char* name, size_t size, const char* deflt=nullptr, const char* info=nullptr, const char* fmt=nullptr, ConfigGroup* group=nullptr, char* ptr=nullptr, bool (*setCb)(char* val, void* cbData)=nullptr, void (*getCb)(char* val, void* cbData)=nullptr, void* cbData=nullptr, uint8_t flags=0)
         : ConfigArrayT(name, size, deflt, FST("str"), info, fmt, group, ptr, setCb, getCb, cbData, flags) {
             if (!fmt) { fmt_ = FST("%s"); }
+            if (!default_) { value_[0] = '\0'; }
+            value_[size_-1] = '\0';
         }
 
     virtual size_t print(Print& stream) {
@@ -776,32 +778,12 @@ public:
 
 
 /*
-struct WifiInfo {
-  char ssid[36];
-  char password[64];
-  char host_name[32];
-  uint8_t ip[4];
-  uint8_t dns[4];
-  uint8_t gateway[4];
-  uint8_t subnet[4];
-  bool isDisabled;
-};
-
 struct ConfigData {
-  uint32_t magic;
-  uint32_t configSize;
-  uint16_t displayBrightness;
-  uint16_t touchCalibartionData[8];
   char timeFormat[16];
   char dateFormat[16];
   char timeZone[48];
-  uint32_t adcVref;
-  WifiInfo wifi;
-  uint32_t crc;  // Must be at end of struct
 };
-
-extern ConfigData config;
 */
 
-#endif // _CONFIG_VAR_H_
+#endif // _CONFIG_REG_H_
 

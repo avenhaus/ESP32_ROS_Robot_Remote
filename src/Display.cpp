@@ -180,7 +180,7 @@ bool tft_output(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t* bitmap)
 
 void calibrateTouch() {
   bool touch_configured = false;
-  uint16_t* ctc = configTouchCalibration.get();
+  const uint16_t* ctc = configTouchCalibration.get();
   for (size_t n=0; n<configTouchCalibration.size(); n++) {
     if (ctc[n] != 0) {
       touch_configured = true;
@@ -188,7 +188,7 @@ void calibrateTouch() {
     }
   }
   if (touch_configured) {
-      tft.setTouchCalibrate(configTouchCalibration.get());
+      tft.setTouchCalibrate((uint16_t *)ctc);
       has_touch = true;
   } else {
     // data not valid. recalibrate

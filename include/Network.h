@@ -23,6 +23,12 @@ ErrorCode listWifiNetworksJson(Print& out, bool filterEmpty=true);
 void printMac(Print& s, uint8_t *mac);
 void wifiInfo(Print& s);
 
+#if ENABLE_NTP
+extern ConfigStr configTimeZone;
+extern ConfigStr configTimeFormat;
+extern ConfigStr configDateFormat;
+#endif
+
 extern ConfigStr configHostname;
 extern char fullHostname[];
 

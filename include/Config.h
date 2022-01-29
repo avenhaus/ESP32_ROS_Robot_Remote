@@ -162,8 +162,10 @@ extern Print* debugStream;
 
 #define ENABLE_DISPLAY 1
 
-
+// PST8PDT,M3.2.0,M11.1.0
 #define TIME_ZONE "PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00"
+#define TIME_FORMAT "%H:%M:%S"
+#define DATE_FORMAT "%d.%m.%Y"
 
 // "time.nist.gov"
 #define NTP_SERVER_1 "132.163.96.1"

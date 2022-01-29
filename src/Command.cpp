@@ -146,7 +146,12 @@ Command cmdStats(FST("stats"),
     stream->printf(FST("Free memory: %s\r\n"), buffer);
     StrTool::formatDurationUs(buffer, sizeof(buffer), esp_timer_get_time());
     stream->printf(FST("Up Time: %s\r\n"), buffer);
-    getTimeStr(buffer, FST("%H:%M:%S | %d.%m.%y"));
+    #if ENABLE_NTP
+    char fmt[48];
+    size_t n = snprintf(fmt, sizeof(fmt)-1, FST("%s | %s"), configTimeFormat.get(), configDateFormat.get());
+    fmt[n] = '\0';
+    getTimeStr(buffer, fmt);
+    #endif
     stream->printf(FST("Time: %s\r\n"), buffer);
     stream->printf(FST("SDK: %s\r\n"), ESP.getSdkVersion());
     StrTool::formatBytes(buffer, sizeof(buffer), ESP.getFlashChipSize());

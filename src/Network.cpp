@@ -14,6 +14,12 @@
 #include "WebServer.h"
 
 
+#if ENABLE_NTP
+ConfigStr configTimeZone(FST("Time Zone"), 48, TIME_ZONE, FST("Time zone used for NTP"));
+ConfigStr configTimeFormat(FST("Time Format"), 16, TIME_FORMAT, FST("Format string used to print time"));
+ConfigStr configDateFormat(FST("Date Format"), 16, DATE_FORMAT, FST("Format string used to print date"));
+#endif
+
 ConfigGroup configGroupNetwork(FST("WIFI"), nullptr, FST("Network Settings"));
 
 ConfigStr configSSID(FST("SSID"), 36, WIFI_SSID, FST("Name of WIFI network"), 0, &configGroupNetwork);
@@ -59,7 +65,7 @@ void otaTask_(void* parameter ) {
 }
 
 void networkInit() {
-  uint8_t* ip = configIpAddr.get();
+  const uint8_t* ip = configIpAddr.get();
     if (ip[0] || ip[1] || ip[2] || ip[3]) {
         // Static IP details...
         IPAddress ip(ip);
@@ -124,8 +130,7 @@ void networkInit() {
 
 #if ENABLE_NTP
   configTime(0, 0, NTP_SERVER_1, NTP_SERVER_2);
-  //setenv("TZ", config.time_zone, 1);
-  setenv("TZ", "PST8PDT,M3.2.0,M11.1.0", 1);
+  setenv("TZ", configTimeZone.get(), 1);
   tzset();
 #endif
 
