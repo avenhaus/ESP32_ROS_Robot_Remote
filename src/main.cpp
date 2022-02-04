@@ -12,6 +12,8 @@
 #include "Analog.h"
 #include "Battery.h"
 #include "Encoder.h"
+#include "StateReg.h"
+
 
 void extendedInputSetup();
 uint32_t getExtendedInputs();
@@ -42,6 +44,7 @@ uint32_t inputSameCount = 0;
 
 void networkInit(void);
 void networkRun(void);
+
 
 void setup() {
   Serial.begin(SERIAL_SPEED);
@@ -142,6 +145,8 @@ void loop() {
   #if ENABLE_DISPLAY
   guiRun();
   #endif
+
+  stateRegRun();
 
   #if BATTERY_PIN >= 0 
   batteryRun(now);

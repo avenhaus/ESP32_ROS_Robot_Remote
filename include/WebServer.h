@@ -7,7 +7,7 @@
 #include <ESPAsyncWebServer.h>
 
 #include "Config.h"
-#include "CLI.h"
+#include "StateReg.h"
 
 
 #ifndef MAX_TCP_CONNECTIONS
@@ -48,7 +48,7 @@ const char* getContentType(const char* path);
 class WebServer {
 public:
   enum WsState { NoConnection, Connected, Ready };
-  WebServer(uint16_t port=HTTP_PORT, const char* wsPath = FST("/ws"))  : server(port), ws(wsPath), wsState(NoConnection), cmdli() { }
+  WebServer(uint16_t port=HTTP_PORT, const char* wsPath = FST("/ws"))  : server(port), ws(wsPath), wsState(NoConnection) { }
   void begin();
   void run();
   inline bool isConnected() { return wsState != NoConnection; }
@@ -74,10 +74,15 @@ protected:
 
   static void pushError(int code, const char* st, bool web_error = 500, uint16_t timeout = 1000);
 
+#if ENABLE_WS_STATE_MONITOR && ENABLE_STATE_REG
+  static void wsStateChangeCallback(StateGroup& group, void* data);
+  void wsStateChangeCallback_(StateGroup& group);
+#endif
+
+
   AsyncWebServer server;
   AsyncWebSocket ws;
   WsState wsState;
-  CommandLineInterpreter cmdli;
 
   static const char PAGE_NOT_FOUND[] PROGMEM;
   static const char PAGE_CAPTIVE[] PROGMEM;

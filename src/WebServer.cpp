@@ -4,6 +4,7 @@
 #include "Config.h"
 #include "WebServer.h"
 #include "Command.h"
+#include "StateReg.h"
 #include "Files.h"
 #include "Helper.h"
 #include <Update.h>
@@ -97,7 +98,6 @@ const ExtToCt EXT_TO_CT[] PROGMEM = {
 const char KEY_IP[] PROGMEM = "$WEB_ADDRESS$";
 const char KEY_QUERY[] PROGMEM = "$QUERY$";
 
-
 extern WebServer* webServer;
 
 const char* getContentType(const char* path) {
@@ -145,6 +145,23 @@ void WebServer::handleRoot(AsyncWebServerRequest* request) {
   #endif
 }
   
+#if ENABLE_WS_STATE_MONITOR && ENABLE_STATE_REG
+void WebServer::wsStateChangeCallback(StateGroup& group, void* data) {
+  ((WebServer*)data)->wsStateChangeCallback_(group);
+}
+
+void WebServer::wsStateChangeCallback_(StateGroup& group) {
+  if (isReady() && ws.availableForWriteAll()) {
+    char namePrefix[64];
+    char buffer[WS_BUFFER_SIZE];
+    PrintBuffer pb(buffer, sizeof(buffer));
+    pb.print(FST("UPDATE:"));
+    group.printChangeJson(pb, namePrefix, sizeof(namePrefix));
+    DEBUG_println(buffer);
+    ws.textAll(buffer);
+  }
+}
+#endif
 
 void WebServer::onWsEvent(AsyncWebSocket* server, AsyncWebSocketClient* client,
                AwsEventType type, void* arg, uint8_t* data, size_t len) {
@@ -153,7 +170,7 @@ void WebServer::onWsEvent(AsyncWebSocket* server, AsyncWebSocketClient* client,
     DEBUG_printf(FST("ws[%s][%u] connect\n"), server->url(), client->id());
     client->printf(FST("CURRENT_ID: %u"), client->id());
     client->printf(FST("ACTIVE_ID: %u"), client->id());
-    //client->ping();
+    client->ping();
   } else if (type == WS_EVT_DISCONNECT) {
     webServer->wsState = NoConnection;
     DEBUG_printf(FST("ws[%s][%u] disconnect\n"), server->url(), client->id());
@@ -193,7 +210,7 @@ void WebServer::onWsEvent(AsyncWebSocket* server, AsyncWebSocketClient* client,
 
         if (jsonDocRx.containsKey(F("cmd"))) {
             const char* cmd = jsonDocRx[F("cmd")];
-            const char* result = webServer->cmdli.execute(cmd);
+            //const char* result = webServer->cmdli.execute(cmd);
         }
 
         jsonDocRx.clear();
@@ -301,6 +318,12 @@ void WebServer::begin() {
   server.addHandler(&ws);
   
   server.begin();
+  
+#if ENABLE_WS_STATE_MONITOR && ENABLE_STATE_REG
+  if (StateGroup::mainGroup) {
+    StateGroup::mainGroup->addCallback(wsStateChangeCallback, this);
+  }
+#endif
 }
 
  

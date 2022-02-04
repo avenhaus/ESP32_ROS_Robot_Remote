@@ -12,8 +12,10 @@ var interval_ping = -1;
 var last_ping = 0;
 var enable_ping = false;
 var spiffs_path = "";
+var start_tab = "";
 var FW_NAME = "ESP32 Project";
 var FW_VERSION = 0.0
+var ui_tabs = [];
 
 function navbar(){
     var content="<table><tr>";
@@ -85,7 +87,7 @@ xmlhttp.onreadystatechange = function() {
         if (tresp.length < 3) {
             error = true;
         } else {
-            //FW name: ESP32 project # FW version: 0.2 # primary sd:/sd # secondary sd:No SD # authentication:no # webcommunication: Sync: /ws # hostname:esp-57CC
+            //FW name: ESP32 project # FW version: 0.2 # primary sd:/sd # secondary sd:No SD # authentication:no # webcommunication: Sync: /ws # hostname:esp-57CC # tabs: control,settings,files,wizard # start: settings
             for (var p=0; p < tresp.length; p++){
               var sublist = tresp[p].split(":");
               if (sublist[0].trim() == "FW name") {
@@ -93,23 +95,22 @@ xmlhttp.onreadystatechange = function() {
                 document.getElementById('FW_NAME').innerHTML = FW_NAME;
                 nbitem++;
               }
-             if (sublist[0].trim() == "FW version"){
+              else if (sublist[0].trim() == "FW version"){
                  FW_VERSION =  sublist[1];
                  //document.getElementById('FW_VERSION').innerHTML = sublist[1];
                  nbitem++;
-             }
-             if (sublist[0].trim() == "primary sd") {
+              }
+              else if (sublist[0].trim() == "primary sd") {
                 if (sublist[1].trim() == "No SD") {
                 } else {
-                    document.getElementById("spiffs-button").style.display = "block";
                     spiffs_path = sublist[1].trim();
                 }
                 nbitem++;
-            }
-            if (sublist[0].trim() == "secondary sd") {
+              }
+              else if (sublist[0].trim() == "secondary sd") {
                 nbitem++;
-            }
-            if (sublist[0].trim() == "authentication"){
+              }
+              else if (sublist[0].trim() == "authentication"){
                  /*
                  if (sublist[1].trim() == "no") {
                      authentication = false;
@@ -121,8 +122,8 @@ xmlhttp.onreadystatechange = function() {
                  }
                  */
                  nbitem++;
-             }
-             if (sublist[0].trim() == "webcommunication"){
+               }
+               else if (sublist[0].trim() == "webcommunication"){
                 if (sublist[1].trim() == "Async") { async_webcommunication = true; }
                 else {
                     async_webcommunication = false;
@@ -136,13 +137,27 @@ xmlhttp.onreadystatechange = function() {
                     startSocket();
                 }
                 nbitem++;
-             }
-             if (sublist[0].trim() == "hostname"){
+              }
+              else if (sublist[0].trim() == "hostname") {
                  document.title = sublist[1].trim();
                  nbitem++
-             }
-            }
-            if (nbitem == 7) {
+              }
+              else if (sublist[0].trim() == "tabs") {
+                ui_tabs = sublist[1].trim().split(",");
+                if (ui_tabs.includes("control")) { document.getElementById("control-button").style.display = "table-cell"; }
+                if (ui_tabs.includes("settings")) { document.getElementById("settings-button").style.display = "table-cell"; }
+                if (ui_tabs.includes("files") && spiffs_path) { document.getElementById("spiffs-button").style.display = "table-cell"; }
+                nbitem++
+              }
+              else if (sublist[0].trim() == "start") {
+                start_tab = sublist[1].trim();
+                nbitem++
+              }
+              else {
+                console.log("Unknown basic config:", sublist[0].trim());
+              }
+           }
+            if (nbitem == 9) {
                FWOk();
             } else {
                 console.log("Invalid basic config items: " + nbitem);
@@ -164,13 +179,13 @@ xmlhttp.onreadystatechange = function() {
     //removeIf(production)
     xmlhttp.readyState = 4;
     xmlhttp.status = 200;
-    xmlhttp.responseText = "FW version: ROS Remote 0.2 # primary sd:/sd # secondary sd:No SD # authentication:no # webcommunication: Async # hostname:ROS-remote-57CC";
+    xmlhttp.responseText = "FW version: ROS Remote 0.2 # primary sd:/sd # secondary sd:No SD # authentication:no # webcommunication: Async # hostname:ROS-remote-57CC # tabs: control,settings,files,wizard # start: settings";
     xmlhttp.onreadystatechange();
     return;
     //endRemoveIf(production)
     xmlhttp.open("GET", url, true);
     xmlhttp.send();
-    refreshSettings(current_setting_filter);
+    refreshSettings();
 }
 
 var wsmsg = "";
@@ -219,39 +234,36 @@ function startSocket() {
                 }
             }
             wsmsg += msg;
+        } else if (e.data.startsWith("UPDATE:")) {
+            process_state_update(e.data.substr(7));
         } else {
             msg += e.data;
             var tval = msg.split(":");
             if (tval.length >= 2) {
-                if (tval[0] == 'CURRENT_ID') {
+              if (tval[0] == 'CURRENT_ID') {
                     page_id = tval[1];
                     console.log("connection id = " + page_id);
-                }
-                if (enable_ping) {
-                    if (tval[0] == 'PING') {
-                        page_id = tval[1];
-                        console.log("ping from id = " + page_id);
-                        last_ping = Date.now();
-                        if (interval_ping == -1) interval_ping = setInterval(function() {
-                            check_ping();
-                        }, 10 * 1000);
-                    }
-                }
-                if (tval[0] == 'ACTIVE_ID') {
+                } else if (enable_ping && tval[0] == 'PING') {
+                    page_id = tval[1];
+                    console.log("ping from id = " + page_id);
+                    last_ping = Date.now();
+                    if (interval_ping == -1) interval_ping = setInterval(function() {
+                        check_ping();
+                    }, 10 * 1000);
+                } else if (tval[0] == 'ACTIVE_ID') {
                     if (page_id != tval[1]) {
                         Disable_interface();
                     }
-                }
-                if (tval[0] == 'ERROR') {
+                } else if (tval[0] == 'ERROR') {
                   esp_error_message = tval[2];
                   esp_error_code = tval[1];
                   console.log("ERROR: " + tval[2] + " code:" +  tval[1]);
                   CancelCurrentUpload();
-                }
-                if (tval[0] == 'MSG') {
-                  var error_message = tval[2];
-                  var error_code = tval[1];
+                } else if (tval[0] == 'MSG') {
                   console.log("MSG: " + tval[2] + " code:" +  tval[1]);
+                }
+                else {
+                    console.log("Unknown WS message: " + msg);
                 }
             }
 

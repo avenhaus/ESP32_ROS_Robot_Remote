@@ -2,6 +2,7 @@
 #define NETWORK_H
 
 #include <Arduino.h>
+#include "ConfigReg.h"
 
 void networkInit();
 String getWifiMac();

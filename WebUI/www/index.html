@@ -4,6 +4,7 @@
     <script src="js/alertdlg.js"></script>
     <script src="js/statusdlg.js"></script>
     <script src="js/settings.js"></script>
+    <script src="js/control.js"></script>
     <script src="js/restartdlg.js"></script>
     <script src="js/http.js"></script>
     <script src="js/tabs.js"></script>
@@ -18,13 +19,19 @@
         <center><h2 id="FW_NAME">ESP32 Project</h2>
             <table>
             <tr>
-                <td style='padding:10px' class="tooltip">
-                    <span class="tooltip-text">Configuration Settings</span> 
-                    <button type="button" class="btn btn-info" onclick="settingsTab();">
-                        <svg width='1.3em' height='1.2em' version="2.0"> <use href="#icon-th-list" /> </svg>
+                <td style='padding:10px; display:none;' class="tooltip" id="control-button">
+                    <span class="tooltip-text">Control Panel</span> 
+                    <button type="button" class="btn btn-control" onclick="controlTab();">
+                        <svg width='1.3em' height='1.2em' version="2.0"> <use href="#icon-tasks" /> </svg>
                     </button>
                 </td>
-                <td style='padding:10px; display:none' class="tooltip" id="spiffs-button">
+                <td style='padding:10px; display:none;' class="tooltip"  id="settings-button">
+                    <span class="tooltip-text">Configuration Settings</span> 
+                    <button type="button" class="btn btn-info" onclick="settingsTab();">
+                        <svg width='1.3em' height='1.2em' version="2.0"> <use href="#icon-wrench" /> </svg>
+                    </button>
+                </td>
+                <td style='padding:10px; display:none;' class="tooltip" id="spiffs-button">
                     <span class="tooltip-text">Manage local files</span>
                     <button type="button" class="btn btn-success" onclick="SPIFFStab('/');">
                         <svg width='1.3em' height='1.2em' version="2.0"> <use href="#icon-folder-open" /> </svg>
@@ -80,6 +87,7 @@
     <file-include w3-include-html="'sub/statusdlg.html'"></file-include>
     <file-include w3-include-html="'sub/SPIFFStab.html'"></file-include>
     <file-include w3-include-html="'sub/settingstab.html'"></file-include>
+    <file-include w3-include-html="'sub/controltab.html'"></file-include>
     <file-include w3-include-html="'sub/icons.html'"></file-include>
     <!-- / template -->
 

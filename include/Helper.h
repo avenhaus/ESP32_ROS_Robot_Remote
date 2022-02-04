@@ -46,6 +46,7 @@ namespace StrTool {
   bool hexDigit(char c, uint32_t& out);
   size_t urlDecode(char* decoded, size_t size, const char* text);
   uint32_t calculateCrc(const char* data, size_t size);
+  uint32_t calculateStrCrc(const char* data);
 };
 
 

@@ -33,7 +33,8 @@
 #endif
 
 /*
-const char WUI_CATEGORY[] PROGMEM = "F";
+const char WUI_ENTRY_TYPE[] PROGMEM = "E";
+const char WUI_CATEGORY[] PROGMEM = "C";
 const char WUI_PARAMETER[] PROGMEM = "P";
 const char WUI_LABEL[] PROGMEM = "L";
 const char WUI_HELP[] PROGMEM = "H";
@@ -42,6 +43,7 @@ const char WUI_VALUE[] PROGMEM = "V";
 const char WUI_MAX[] PROGMEM = "S";
 const char WUI_MIN[] PROGMEM = "M";
 const char WUI_OPTIONS[] PROGMEM = "O";
+const char WUI_FLAGS[] PROGMEM = "F";
 */
 
 
@@ -51,11 +53,9 @@ const char WUI_OPTIONS[] PROGMEM = "O";
 
 static const uint8_t CVF_HIDDEN =        (uint8_t)(1<<0);
 static const uint8_t CVF_NOT_PERSISTED = (uint8_t)(1<<1);
-static const uint8_t CVF_READ_ONLY =     (uint8_t)(1<<2);
-static const uint8_t CVF_PASSWORD =      (uint8_t)(1<<3);
-static const uint8_t CVF_WIZARD =        (uint8_t)(1<<4);
-static const uint8_t CVF_IMPORTANT =     (uint8_t)(1<<5);
-static const uint8_t CVF_COLLAPSED =     (uint8_t)(1<<6);
+static const uint8_t CVF_PASSWORD =      (uint8_t)(1<<2);
+static const uint8_t CVF_WIZARD =        (uint8_t)(1<<3);
+static const uint8_t CVF_READ_ONLY =     (uint8_t)(1<<4);
 
 static const uint16_t CVF_SHOW_PASSWORD = (uint16_t)(1<<8);
 
@@ -148,10 +148,10 @@ public:
         }
     }
     void addChild(ConfigGroup* child) { children_.push_back(child); updateVarCount_(child->size()); }
-    void removeChild(ConfigGroup* child) { remove(children_.begin(), children_.end(), child);  updateVarCount_(-child->size()); }
+    void removeChild(ConfigGroup* child) { children_.erase(remove(children_.begin(), children_.end(), child), children_.end());  updateVarCount_(-child->size()); }
     ConfigGroup* findChild(const char* name);
     void addVar(ConfigVar* var) { vars_.push_back(var); updateVarCount_(1); }
-    void removeVar(ConfigVar* var) { size_t tmp=vars_.size(); remove(vars_.begin(), vars_.end(), var); updateVarCount_(vars_.size() - tmp); }
+    void removeVar(ConfigVar* var) { size_t tmp=vars_.size(); vars_.erase(remove(vars_.begin(), vars_.end(), var), vars_.end()); updateVarCount_(vars_.size() - tmp); }
     ConfigVar* findVar(const char* name);
     ConfigVar* findVarByFullName(const char* name, bool matchCase=true);
     size_t toJsonStr(char* buffer, size_t size, bool noName=false, uint16_t flags=0, uint8_t flagsMask=0);
@@ -245,7 +245,8 @@ protected:
         size_t n = 0;
         char buffer[64];
         StrTool::toCleanName(buffer, sizeof(buffer), name_);
-        n += stream->printf(FST("{\"P\":\"%s\""), buffer); // Parameter Name
+        n += stream->printf(FST("{\"E\":0")); // Entry Type: Config
+        n += stream->printf(FST(",\"P\":\"%s\""), buffer); // Parameter Name
         n += stream->printf(FST(",\"L\":\"%s\""), name_);  // Label
         n += stream->printf(FST(",\"T\":\"%s\""), typeHelp_);  // Type
         if (info_) {n += stream->printf(FST(",\"H\":\"%s\""), info_); } // Help
@@ -275,6 +276,8 @@ public:
         if (!fmt) { fmt_ = FST("%d"); }
     }
     virtual ~ConfigVarT() {}
+
+    virtual inline T* getValueRef() { return &value_; }
 
     virtual T get() {
         if (ptr_) { value_ = *ptr_; }
@@ -331,7 +334,8 @@ public:
         if ((flags_ ^ flags) & flagsMask) { return 0; }
         size_t n = getWebUiCommon_(stream);
         get();
-        n += stream->printf(FST(",\"V\":%d"), value_);  // Value
+        n += stream->print(FST(",\"V\":"));
+        n += stream->print(value_);
         stream->write('}'); n++;
         return n;
     }
@@ -429,6 +433,8 @@ public:
         else { for (size_t n=0; n<size_; n++) { value_[n] = 0; } }        
     }
     virtual ~ConfigArrayT() { delete [] value_; }
+
+   virtual inline T* getValueRef() { return value_; }
 
     virtual const T* get() {
         if (ptr_) { for (size_t n=0; n<size_; n++) { value_[n] = ptr_[n]; } }
@@ -764,6 +770,18 @@ public:
         size_t n = StrTool::readIpAddr(valStr, ip, errorStr);
         if (n) { set(ip); }
         return n;
+    }
+    virtual bool setFromJson(const JsonVariant& jv) {
+        if (jv.is<JsonArray>()) { return ConfigArrayT::setFromJson(jv); }
+        if (!jv.is<const char*>()) {
+            DEBUG_printf(FST("JSON config for \"%s\" is not a string or array\n"), name_);
+            return true;
+        }
+        if (!setFromStr((const char*)jv)) {
+            DEBUG_printf(FST("JSON config for \"%s\" is not a valid IP address\n"), name_);
+            return true;
+        }
+        return false;
     }
     virtual size_t getWebUi(Print* stream, uint16_t flags=0, uint8_t flagsMask=0) {
         if ((flags_ ^ flags) & flagsMask) { return 0; }

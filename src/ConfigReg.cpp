@@ -17,9 +17,99 @@
 #include "ConfigReg.h"
 #include "Helper.h"
 #include "Secret.h"
+#include "Command.h"
 
 ConfigGroup* ConfigGroup::mainGroup = nullptr;
 size_t ConfigVar::count_ = 0;
+
+/************************************************************************\
+|* Config Commands
+\************************************************************************/
+
+CommandRegistry cmdRegConfig(FST("config"));
+
+extern char fullHostname[];
+Command cmdBasicConfig(FST("basics"), 
+[] (const char* args, Print* stream) {
+    #if ENABLE_SPIFFS
+      #define SPIFFS_LOC "/sd"
+    #else
+      #define SPIFFS_LOC "No SD"
+    #endif // ENABLE_SPIFFS
+    stream->printf(FST("FW name: %s # FW version: %s # primary sd:" SPIFFS_LOC " # secondary sd:No SD # authentication:no # webcommunication: Sync: /ws # hostname:%s # tabs: " WEBUI_TABS " # start: " WEBUI_START_TAB "\n"),
+    PROJECT_NAME, VERSION_NUMBER, fullHostname);
+    return EC_OK;
+},
+FST("Get basic configuration"), &cmdRegConfig
+);
+
+Command cmdSaveConfig(FST("save"), 
+[] (const char* args, Print* stream) {
+    saveConfig();
+    return EC_OK;
+},
+FST("Save configuration to EEPROM"), &cmdRegConfig
+);
+
+Command cmdLoadConfig(FST("load"), 
+[] (const char* args, Print* stream) {
+    loadConfig();
+    return EC_OK;
+},
+FST("Load configuration from EEPROM"), &cmdRegConfig
+);
+
+Command cmdDefaultConfig(FST("def"), 
+[] (const char* args, Print* stream) {
+    defaultConfig();
+    return EC_OK;
+},
+FST("Set default configuration"), &cmdRegConfig
+);
+
+Command cmdGetConfig(FST("get"), 
+[] (const char* args, Print* stream) {
+    ConfigGroup::mainGroup->toJson(stream, true);
+    stream->println();
+    return EC_OK;
+},
+FST("Get configuration as JSON"), &cmdRegConfig,
+nullptr, CT_APP_JSON
+);
+
+Command cmdConfigVar(FST("var"), 
+[] (const char* args, Print* stream) {
+    ConfigVar* var = ConfigGroup::mainGroup->findVarByFullName(args, false);
+    if (var) {
+        while (*args && *args != ' ') { args++; };
+        while (*args == ' ') { args++; }
+        if (*args) {
+            const char* errorStr = nullptr;
+            var->setFromStr(args, &errorStr);
+            if (stream && errorStr) { stream->print(errorStr); }
+            return errorStr ? EC_BAD_REQUEST : EC_OK;
+        } else {
+            if (stream) { var->print(*stream); }
+        }
+    } else {
+         if (stream) { stream->print(FST("unknown variable")); }
+         return EC_NOT_FOUND;
+    }
+    if (stream) { stream->println(); }
+    return EC_OK;
+},
+FST("Get or set configuration variable"), &cmdRegConfig, FST("<name> [value]"), CT_APP_JSON
+);
+
+Command cmdGetConfigUi(FST("ui"), 
+[] (const char* args, Print* stream) {
+    ConfigGroup::mainGroup->getWebUi(stream, true);
+    stream->println();
+    return EC_OK;
+},
+FST("Get configuration UI as JSON"), &cmdRegConfig,
+nullptr, CT_APP_JSON
+);
 
 
 /************************************************************************\

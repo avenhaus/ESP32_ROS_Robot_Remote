@@ -35,6 +35,13 @@ background-image:none;border:1px solid transparent;white-space:nowrap;padding:6p
 .panel-footer{padding:10px 15px;color:#31708f;background-color:#f5f5f5;border-color:#dddddd;border-top:1px solid #dddddd;}
 .panel-footer{padding:10px 15px;color:#31708f;background-color:#f5f5f5;border-color:#dddddd;border-top:1px solid #dddddd;}
 
+.highlight {
+    background-color:#ffff44;
+}
+
+.bgtrans {
+    transition: all 0.5s ease;
+}
 
 .btn {
     display: inline-block;
@@ -487,6 +494,73 @@ fieldset[disabled] .btn-danger.focus {
     color: #d9534f;
     background-color: #ffffff;
 }
+
+.btn-control {
+    color: #ffffff;
+    background-color: #7c0755;
+    border-color: #600044;
+}
+
+.btn-control:focus,
+.btn-control.focus {
+    color: #ffffff;
+    background-color: #700344;
+    border-color: #500033;
+}
+
+.btn-control:hover {
+    color: #ffffff;
+    background-color: #700344;
+    border-color: #400022;
+}
+
+.btn-control:active,
+.btn-control.active,
+.open>.dropdown-toggle.btn-control {
+    color: #ffffff;
+    background-color: #700344;
+    border-color: #400022;
+}
+
+.btn-control:active:hover,
+.btn-control.active:hover,
+.open>.dropdown-toggle.btn-control:hover,
+.btn-control:active:focus,
+.btn-control.active:focus,
+.open>.dropdown-toggle.btn-control:focus,
+.btn-control:active.focus,
+.btn-control.active.focus,
+.open>.dropdown-toggle.btn-control.focus {
+    color: #ffffff;
+    background-color: #7c0755;
+    border-color: #600044;
+}
+
+.btn-control:active,
+.btn-control.active,
+.open>.dropdown-toggle.btn-control {
+    background-image: none;
+}
+
+.btn-control.disabled:hover,
+.btn-control[disabled]:hover,
+fieldset[disabled] .btn-control:hover,
+.btn-control.disabled:focus,
+.btn-control[disabled]:focus,
+fieldset[disabled] .btn-control:focus,
+.btn-control.disabled.focus,
+.btn-control[disabled].focus,
+fieldset[disabled] .btn-control.focus {
+    background-color: #7c0755;
+    border-color: #600044;
+}
+
+.btn-control .badge {
+    background-color: #7c0755;
+    background-color: #ffffff;
+}
+
+
 
 .tooltip{position:relative;}
 .tooltip .tooltip-text{white-space: normal; opacity:0;transition:opacity 1s;width:150px;top:100%;left:50%;margin-left:-70px;background-color:#fff;color:#000;text-align:center;border-radius:6px;padding:5px 0;border:1px solid #000;position:absolute;z-index:999}.tooltip:hover .tooltip-text{opacity:1}

@@ -345,6 +345,20 @@ uint32_t calculateCrc(const char* data, size_t size) {
   return crc;
 }
 
+uint32_t calculateStrCrc(const char* data) {
+  uint32_t crc = -1;
+  uint32_t tmp = 0;
+  size_t n = 0;
+  while (data[n]) {
+    tmp = tmp << 8;
+    tmp |= data[n++];
+    crc += 0x08040201;
+    if ((n&3) == 0) { crc += tmp; }
+  }
+  if (n&3) { crc += tmp; }
+  return crc;
+}
+
 bool hexDigit(char c, uint32_t& out) {
   c = toupper(c);
   if (c >= '0' && c <= '9') { 
