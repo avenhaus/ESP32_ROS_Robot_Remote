@@ -19,6 +19,7 @@
 #include <iterator>
 #include <cstddef>
 
+#include "RegGroup.h"
 #include "Helper.h"
 
 // Disable warning about char being deprecated. Not sure why it's needed...
@@ -31,33 +32,6 @@
 #ifndef CONFIG_BUFFER_SIZE
 #define CONFIG_BUFFER_SIZE 1024
 #endif
-
-/*
-const char WUI_ENTRY_TYPE[] PROGMEM = "E";
-const char WUI_CATEGORY[] PROGMEM = "C";
-const char WUI_PARAMETER[] PROGMEM = "P";
-const char WUI_LABEL[] PROGMEM = "L";
-const char WUI_HELP[] PROGMEM = "H";
-const char WUI_TYPE[] PROGMEM = "T";
-const char WUI_VALUE[] PROGMEM = "V";
-const char WUI_MAX[] PROGMEM = "S";
-const char WUI_MIN[] PROGMEM = "M";
-const char WUI_OPTIONS[] PROGMEM = "O";
-const char WUI_FLAGS[] PROGMEM = "F";
-*/
-
-
-/************************************************************************\
-|* Flags
-\************************************************************************/
-
-static const uint8_t CVF_HIDDEN =        (uint8_t)(1<<0);
-static const uint8_t CVF_NOT_PERSISTED = (uint8_t)(1<<1);
-static const uint8_t CVF_PASSWORD =      (uint8_t)(1<<2);
-static const uint8_t CVF_WIZARD =        (uint8_t)(1<<3);
-static const uint8_t CVF_READ_ONLY =     (uint8_t)(1<<4);
-
-static const uint16_t CVF_SHOW_PASSWORD = (uint16_t)(1<<8);
 
 
 /************************************************************************\
@@ -80,199 +54,14 @@ typedef struct ConfigHeader {
 } ConfigHeader;
 
 
-/************************************************************************\
-|* Config Group organizes Config Variables in a hierarchical tree
-\************************************************************************/
-
-class ConfigVar;
-class ConfigGroup {
-public:
-
-    /*------------------------------------------------------------------*\
-     * Recursive iterator over all the (child) variables of this group.
-    \*------------------------------------------------------------------*/
-    class Iterator 
-    {
-        public: 
-        using iterator_category = std::forward_iterator_tag;
-        using difference_type   = std::ptrdiff_t;
-        using value_type        = ConfigVar&;
-        using pointer           = ConfigVar*;  // or also value_type*
-        using reference         = ConfigVar&;  // or also value_type&
-
-        Iterator(ConfigGroup& group, size_t index) : group_(group), index_(index) {
-            varP_ = index < group_.size() ?  group_.get(index_) : nullptr;
-        }
-
-        reference operator*() const { return *varP_; }
-        pointer operator->() { return varP_; }
-
-        // Prefix increment
-        Iterator& operator++() { next_(); return *this; }  
-
-        // Postfix increment
-        Iterator operator++(int) { Iterator tmp = *this; ++(*this); return tmp; }
-
-        friend bool operator== (const Iterator& a, const Iterator& b) { return a.index_ == b.index_; };
-        friend bool operator!= (const Iterator& a, const Iterator& b) { return a.index_ != b.index_; };     
-
-
-        size_t getVarName(char* buffer, size_t size) {
-            return group_.getVarName(buffer, size, index_);
-        }
-
-        protected:
-        void next_() {
-            ++index_;
-            varP_ = index_ < group_.size() ?  group_.get(index_) : nullptr;
-        }
-        ConfigGroup& group_;
-        size_t index_;
-        ConfigVar* varP_;
-    };
-
-
-    /*------------------------------------------------------------------*\
-     * Config Group
-    \*------------------------------------------------------------------*/
-    ConfigGroup(const char* name, ConfigGroup* parent=nullptr, const char* info=nullptr, uint8_t flags=0) 
-      : name_(name), parent_(parent), info_(info), flags_(flags), varCount_(0) {
-        checkMain();
-        if (parent_ == nullptr) { parent_ = mainGroup; }
-        if (parent_ && parent_ != (ConfigGroup*)-1) { parent_->addChild(this); }
-    }
-    ~ConfigGroup() {
-        if(parent_) {
-            parent_->removeChild(this);
-            parent_ = nullptr;
-        }
-    }
-    void addChild(ConfigGroup* child) { children_.push_back(child); updateVarCount_(child->size()); }
-    void removeChild(ConfigGroup* child) { children_.erase(remove(children_.begin(), children_.end(), child), children_.end());  updateVarCount_(-child->size()); }
-    ConfigGroup* findChild(const char* name);
-    void addVar(ConfigVar* var) { vars_.push_back(var); updateVarCount_(1); }
-    void removeVar(ConfigVar* var) { size_t tmp=vars_.size(); vars_.erase(remove(vars_.begin(), vars_.end(), var), vars_.end()); updateVarCount_(vars_.size() - tmp); }
-    ConfigVar* findVar(const char* name);
-    ConfigVar* findVarByFullName(const char* name, bool matchCase=true);
-    size_t toJsonStr(char* buffer, size_t size, bool noName=false, uint16_t flags=0, uint8_t flagsMask=0);
-    size_t toJson(Print* stream, bool noName=false, uint16_t flags=0, uint8_t flagsMask=0);
-    size_t getWebUi(Print* stream, bool noName=false, uint16_t flags=0, uint8_t flagsMask=0);
-    bool setFromJson(const JsonObject& obj);
-    void setDefaults();
-    inline const char* name() { return name_; }
-    size_t getVarName(char* buffer, size_t size, size_t index);
-    inline size_t size() { return varCount_; }
-    inline size_t childrenSize() { return varCount_ - vars_.size(); }
-    inline std::vector<ConfigGroup*>& children() { return children_; }
-    inline std::vector<ConfigVar*>& vars() { return vars_; }
-    inline const char* info() { return info_; }
-    inline uint8_t flags() { return flags_; }
-    inline bool isHidden() { return flags_ & CVF_HIDDEN; }   
-    inline bool isNotPersisted() { return flags_ & CVF_NOT_PERSISTED; }   
-    ConfigVar* get(size_t n);
-    std::vector<ConfigVar*>::iterator getIt(size_t n);
-    Iterator begin() { return Iterator(*this, 0); }
-    Iterator end()   { return Iterator(*this, size()); } 
-
-    static ConfigGroup* mainGroup;
-    static void checkMain() {
-        if (!mainGroup) {
-        mainGroup = (ConfigGroup*)-1; // Dummy value. Prevent infinite recursion
-        mainGroup = new ConfigGroup(FST("main"), (ConfigGroup*)-1);
-    }
-
-    }
-
-protected:
-    size_t updateVarCount_(size_t n) {
-        varCount_ += n;
-        if (parent_ && parent_ != (ConfigGroup*)-1) { parent_->updateVarCount_(n); }
-        return varCount_;
-    }
-
-    const char* name_;
-    ConfigGroup* parent_;
-    const char* info_;
-    std::vector<ConfigGroup*> children_;
-    std::vector<ConfigVar*> vars_;
-    uint8_t flags_;
-    size_t varCount_;
-};
-
-/************************************************************************\
-|* Config Variable Base Class
-\************************************************************************/
-class ConfigVar {
-public:
-  // typedef enum ConfigType {CT_BOOL, CT_INT8, CT_INT16, CT_INT32, CT_FLOAT, VT_STR, CT_IP} PType;
-  ConfigVar(const char* name, const char* typeHelp=nullptr, const char* info=nullptr, const char* fmt=nullptr, ConfigGroup* group=nullptr, uint8_t flags=0)
-    : name_(name), fmt_(fmt), typeHelp_(typeHelp), info_(info), group_(group), flags_(flags), id_(count_++) {
-        if (!typeHelp_) { typeHelp_ = FST("value"); }
-        if (!info_) { info_ = FST(""); }
-        if (!group_) { 
-            ConfigGroup::checkMain();
-            group_ = ConfigGroup::mainGroup; 
-        }
-        group_->addVar(this);
-    }
-    virtual ~ConfigVar() {
-        if (group_) {
-            group_->removeVar(this);
-            group_ = nullptr;
-        }
-
-    }
-    virtual size_t print(Print& stream) = 0;
-    virtual size_t toStr(char* buffer, size_t size) = 0;
-    virtual size_t toJsonStr(char* buffer, size_t size, bool noName=false, uint16_t flags=0, uint8_t flagsMask=0) = 0;
-    virtual bool setFromJson(const JsonVariant& jv) = 0;
-    virtual size_t setFromStr(const char* valStr, const char** errorStr=nullptr) = 0;
-    virtual size_t getWebUi(Print* stream, uint16_t flags=0, uint8_t flagsMask=0) = 0;
-    virtual void setDefault() = 0;
-    inline const char* name() { return name_; }
-    inline const char* fmt() { return fmt_; }
-    inline const char* typeHelp() { return typeHelp_; }
-    inline const char* info() { return info_; }
-    inline uint8_t flags() { return flags_; }
-    inline bool isHidden() { return flags_ & CVF_HIDDEN; }   
-    inline bool isNotPersisted() { return flags_ & CVF_NOT_PERSISTED; }   
-    inline bool isReadOnly() { return flags_ & CVF_READ_ONLY; }   
-    inline bool isPassword() { return flags_ & CVF_PASSWORD; }
-    inline size_t id() { return id_; }   
-
-protected:
-    virtual size_t getWebUiCommon_(Print* stream) {
-        size_t n = 0;
-        char buffer[64];
-        StrTool::toCleanName(buffer, sizeof(buffer), name_);
-        n += stream->printf(FST("{\"E\":0")); // Entry Type: Config
-        n += stream->printf(FST(",\"P\":\"%s\""), buffer); // Parameter Name
-        n += stream->printf(FST(",\"L\":\"%s\""), name_);  // Label
-        n += stream->printf(FST(",\"T\":\"%s\""), typeHelp_);  // Type
-        if (info_) {n += stream->printf(FST(",\"H\":\"%s\""), info_); } // Help
-        if (flags_) {n += stream->printf(FST(",\"F\":%d"), flags_); }
-        return n;
-    }
-
-    const char* name_;
-    const char* fmt_;
-    const char* typeHelp_;
-    const char* info_;
-    ConfigGroup* group_;
-    uint8_t flags_;
-    size_t id_;
-
-    static size_t count_;
-};
-
 
 /************************************************************************\
 |* Config Variable Template Class for individual values
 \************************************************************************/
-template <class T> class ConfigVarT : public ConfigVar {
+template <class T> class ConfigVarT : public RegVar {
 public:
-    ConfigVarT(const char* name, const T deflt=0, const char* typeHelp=nullptr, const char* info=nullptr, const char* fmt=nullptr, ConfigGroup* group=nullptr, T* ptr=nullptr, bool (*setCb)(T val, void* cbData)=nullptr, T (*getCb)(void* cbData)=nullptr, void* cbData=nullptr, uint8_t flags=0)
-        : ConfigVar(name, typeHelp, info, fmt, group, flags), default_(deflt), value_(deflt), ptr_(ptr), setCb_(setCb), getCb_(getCb), cbData_(cbData) {
+    ConfigVarT(const char* name, const T deflt=0, const char* typeHelp=nullptr, const char* info=nullptr, const char* fmt=nullptr, RegGroup* group=nullptr, T* ptr=nullptr, bool (*setCb)(T val, void* cbData)=nullptr, T (*getCb)(void* cbData)=nullptr, void* cbData=nullptr, RFFlag flags=0)
+        : RegVar(name, typeHelp, info, fmt, group, flags | RF_IS_CONFIG), default_(deflt), value_(deflt), ptr_(ptr), setCb_(setCb), getCb_(getCb), cbData_(cbData) {
         if (!fmt) { fmt_ = FST("%d"); }
     }
     virtual ~ConfigVarT() {}
@@ -303,7 +92,7 @@ public:
         return n;        
     }
 
-    virtual size_t toJsonStr(char* buffer, size_t size, bool noName=false, uint16_t flags=0, uint8_t flagsMask=0) {
+    virtual size_t toJsonStr(char* buffer, size_t size, bool noName=false, uint32_t flags=0, RFFlag flagsMask=0) {
         if ((flags_ ^ flags) & flagsMask) { return 0; }
         size_t n = 0;
         if (!noName) { n += StrTool::toJsonName(buffer+n, size-n, name_); }
@@ -330,7 +119,7 @@ public:
         set(default_);
     }
 
-    virtual size_t getWebUi(Print* stream, uint16_t flags=0, uint8_t flagsMask=0) {
+    virtual size_t getWebUi(Print* stream, uint32_t flags=0, RFFlag flagsMask=0) {
         if ((flags_ ^ flags) & flagsMask) { return 0; }
         size_t n = getWebUiCommon_(stream);
         get();
@@ -354,7 +143,7 @@ protected:
 \*----------------------------------------------------------------------*/
 class ConfigBool : public ConfigVarT<bool> {
 public:
-    ConfigBool(const char* name, bool deflt=0, const char* info=nullptr, const char* fmt=nullptr, ConfigGroup* group=nullptr, bool* ptr=nullptr, bool (*setCb)(bool val, void* cbData)=nullptr, bool (*getCb)(void* cbData)=nullptr, void* cbData=nullptr, uint8_t flags=0)
+    ConfigBool(const char* name, bool deflt=0, const char* info=nullptr, const char* fmt=nullptr, RegGroup* group=nullptr, bool* ptr=nullptr, bool (*setCb)(bool val, void* cbData)=nullptr, bool (*getCb)(void* cbData)=nullptr, void* cbData=nullptr, RFFlag flags=0)
         : ConfigVarT(name, deflt, FST("bool"), info, fmt, group, ptr, setCb, getCb, cbData, flags) {}
 
     virtual size_t setFromStr(const char* valStr, const char** errorStr=nullptr) {
@@ -370,7 +159,7 @@ public:
 \*----------------------------------------------------------------------*/
 class ConfigInt32 : public ConfigVarT<int32_t> {
 public:
-    ConfigInt32(const char* name, int32_t deflt=0, const char* info=nullptr, const char* fmt=nullptr, ConfigGroup* group=nullptr, int32_t* ptr=nullptr, bool (*setCb)(int32_t val, void* cbData)=nullptr, int32_t (*getCb)(void* cbData)=nullptr, void* cbData=nullptr, uint8_t flags=0)
+    ConfigInt32(const char* name, int32_t deflt=0, const char* info=nullptr, const char* fmt=nullptr, RegGroup* group=nullptr, int32_t* ptr=nullptr, bool (*setCb)(int32_t val, void* cbData)=nullptr, int32_t (*getCb)(void* cbData)=nullptr, void* cbData=nullptr, RFFlag flags=0)
         : ConfigVarT(name, deflt, FST("int32"), info, fmt, group, ptr, setCb, getCb, cbData, flags) {}
 };
 
@@ -379,7 +168,7 @@ public:
 \*----------------------------------------------------------------------*/
 class ConfigUInt32 : public ConfigVarT<uint32_t> {
 public:
-    ConfigUInt32(const char* name, uint32_t deflt=0, const char* info=nullptr, const char* fmt=nullptr, ConfigGroup* group=nullptr, uint32_t* ptr=nullptr, bool (*setCb)(uint32_t val, void* cbData)=nullptr, uint32_t (*getCb)(void* cbData)=nullptr, void* cbData=nullptr, uint8_t flags=0)
+    ConfigUInt32(const char* name, uint32_t deflt=0, const char* info=nullptr, const char* fmt=nullptr, RegGroup* group=nullptr, uint32_t* ptr=nullptr, bool (*setCb)(uint32_t val, void* cbData)=nullptr, uint32_t (*getCb)(void* cbData)=nullptr, void* cbData=nullptr, RFFlag flags=0)
         : ConfigVarT(name, deflt, FST("uint32"), info, fmt, group, ptr, setCb, getCb, cbData, flags) {}
 };
 
@@ -388,7 +177,7 @@ public:
 \*----------------------------------------------------------------------*/
 class ConfigInt16 : public ConfigVarT<int16_t> {
 public:
-    ConfigInt16(const char* name, int16_t deflt=0, const char* info=nullptr, const char* fmt=nullptr, ConfigGroup* group=nullptr, int16_t* ptr=nullptr, bool (*setCb)(int16_t val, void* cbData)=nullptr, int16_t (*getCb)(void* cbData)=nullptr, void* cbData=nullptr, uint8_t flags=0)
+    ConfigInt16(const char* name, int16_t deflt=0, const char* info=nullptr, const char* fmt=nullptr, RegGroup* group=nullptr, int16_t* ptr=nullptr, bool (*setCb)(int16_t val, void* cbData)=nullptr, int16_t (*getCb)(void* cbData)=nullptr, void* cbData=nullptr, RFFlag flags=0)
         : ConfigVarT(name, deflt, FST("int16"), info, fmt, group, ptr, setCb, getCb, cbData, flags) {}
 };
 
@@ -397,7 +186,7 @@ public:
 \*----------------------------------------------------------------------*/
 class ConfigUInt16 : public ConfigVarT<uint16_t> {
 public:
-    ConfigUInt16(const char* name, uint16_t deflt=0, const char* info=nullptr, const char* fmt=nullptr, ConfigGroup* group=nullptr, uint16_t* ptr=nullptr, bool (*setCb)(uint16_t val, void* cbData)=nullptr, uint16_t (*getCb)(void* cbData)=nullptr, void* cbData=nullptr, uint8_t flags=0)
+    ConfigUInt16(const char* name, uint16_t deflt=0, const char* info=nullptr, const char* fmt=nullptr, RegGroup* group=nullptr, uint16_t* ptr=nullptr, bool (*setCb)(uint16_t val, void* cbData)=nullptr, uint16_t (*getCb)(void* cbData)=nullptr, void* cbData=nullptr, RFFlag flags=0)
         : ConfigVarT(name, deflt, FST("uint16"), info, fmt, group, ptr, setCb, getCb, cbData, flags) {}
 };
 
@@ -406,7 +195,7 @@ public:
 \*----------------------------------------------------------------------*/
 class ConfigInt8 : public ConfigVarT<int8_t> {
 public:
-    ConfigInt8(const char* name, int8_t deflt=0, const char* info=nullptr, const char* fmt=nullptr, ConfigGroup* group=nullptr, int8_t* ptr=nullptr, bool (*setCb)(int8_t val, void* cbData)=nullptr, int8_t (*getCb)(void* cbData)=nullptr, void* cbData=nullptr, uint8_t flags=0)
+    ConfigInt8(const char* name, int8_t deflt=0, const char* info=nullptr, const char* fmt=nullptr, RegGroup* group=nullptr, int8_t* ptr=nullptr, bool (*setCb)(int8_t val, void* cbData)=nullptr, int8_t (*getCb)(void* cbData)=nullptr, void* cbData=nullptr, RFFlag flags=0)
         : ConfigVarT(name, deflt, FST("int8"), info, fmt, group, ptr, setCb, getCb, cbData, flags) {}
 };
 
@@ -415,7 +204,7 @@ public:
 \*----------------------------------------------------------------------*/
 class ConfigUInt8 : public ConfigVarT<uint8_t> {
 public:
-    ConfigUInt8(const char* name, uint8_t deflt=0, const char* info=nullptr, const char* fmt=nullptr, ConfigGroup* group=nullptr, uint8_t* ptr=nullptr, bool (*setCb)(uint8_t val, void* cbData)=nullptr, uint8_t (*getCb)(void* cbData)=nullptr, void* cbData=nullptr, uint8_t flags=0)
+    ConfigUInt8(const char* name, uint8_t deflt=0, const char* info=nullptr, const char* fmt=nullptr, RegGroup* group=nullptr, uint8_t* ptr=nullptr, bool (*setCb)(uint8_t val, void* cbData)=nullptr, uint8_t (*getCb)(void* cbData)=nullptr, void* cbData=nullptr, RFFlag flags=0)
         : ConfigVarT(name, deflt, FST("uint8"), info, fmt, group, ptr, setCb, getCb, cbData, flags) {}
 };
 
@@ -423,10 +212,10 @@ public:
 /************************************************************************\
 |* Config Variable Template Class for arrays
 \************************************************************************/
-template <class T> class ConfigArrayT : public ConfigVar {
+template <class T> class ConfigArrayT : public RegVar {
 public:
-    ConfigArrayT(const char* name, size_t size, const T* deflt=nullptr, const char* typeHelp=nullptr, const char* info=nullptr, const char* fmt=nullptr, ConfigGroup* group=nullptr, T* ptr=nullptr, bool (*setCb)(T* val, void* cbData)=nullptr, void (*getCb)(T* val,void* cbData)=nullptr, void* cbData=nullptr, uint8_t flags=0)
-        : ConfigVar(name, typeHelp, info, fmt, group, flags), size_(size), default_(deflt), ptr_(ptr), setCb_(setCb), getCb_(getCb), cbData_(cbData) {
+    ConfigArrayT(const char* name, size_t size, const T* deflt=nullptr, const char* typeHelp=nullptr, const char* info=nullptr, const char* fmt=nullptr, RegGroup* group=nullptr, T* ptr=nullptr, bool (*setCb)(T* val, void* cbData)=nullptr, void (*getCb)(T* val,void* cbData)=nullptr, void* cbData=nullptr, RFFlag flags=0)
+        : RegVar(name, typeHelp, info, fmt, group, flags | RF_IS_CONFIG), size_(size), default_(deflt), ptr_(ptr), setCb_(setCb), getCb_(getCb), cbData_(cbData) {
         if (!fmt) { fmt_ = FST("%d"); }
         value_ = new T[size_];
         if (default_) { for (size_t n=0; n<size_; n++) { value_[n] = default_[n]; } }
@@ -474,7 +263,7 @@ public:
         return n;
     }
 
-    virtual size_t toJsonStr(char* buffer, size_t size, bool noName=false, uint16_t flags=0, uint8_t flagsMask=0) {
+    virtual size_t toJsonStr(char* buffer, size_t size, bool noName=false, uint32_t flags=0, RFFlag flagsMask=0) {
         if ((flags_ ^ flags) & flagsMask) { return 0; }
         size_t n = 0;
         if (!noName) { n += StrTool::toJsonName(buffer+n, size-n, name_); }
@@ -551,7 +340,7 @@ public:
     }
 
     inline size_t size() { return size_; }
-    virtual size_t getWebUi(Print* stream, uint16_t flags=0, uint8_t flagsMask=0) {
+    virtual size_t getWebUi(Print* stream, uint32_t flags=0, RFFlag flagsMask=0) {
         if ((flags_ ^ flags) & flagsMask) { return 0; }
         char buffer[32];
         size_t n = getWebUiCommon_(stream);
@@ -584,7 +373,7 @@ protected:
 \*----------------------------------------------------------------------*/
 class ConfigStr : public ConfigArrayT<char> {
 public:
-    ConfigStr(const char* name, size_t size, const char* deflt=nullptr, const char* info=nullptr, const char* fmt=nullptr, ConfigGroup* group=nullptr, char* ptr=nullptr, bool (*setCb)(char* val, void* cbData)=nullptr, void (*getCb)(char* val, void* cbData)=nullptr, void* cbData=nullptr, uint8_t flags=0)
+    ConfigStr(const char* name, size_t size, const char* deflt=nullptr, const char* info=nullptr, const char* fmt=nullptr, RegGroup* group=nullptr, char* ptr=nullptr, bool (*setCb)(char* val, void* cbData)=nullptr, void (*getCb)(char* val, void* cbData)=nullptr, void* cbData=nullptr, RFFlag flags=0)
         : ConfigArrayT(name, size, deflt, FST("str"), info, fmt, group, ptr, setCb, getCb, cbData, flags) {
             if (!fmt) { fmt_ = FST("%s"); }
             if (!default_) { value_[0] = '\0'; }
@@ -602,12 +391,12 @@ public:
         buffer[n] = '\0';
         return n;
     }
-    virtual size_t toJsonStr(char* buffer, size_t size, bool noName=false, uint16_t flags=0, uint8_t flagsMask=0) {
+    virtual size_t toJsonStr(char* buffer, size_t size, bool noName=false, uint32_t flags=0, RFFlag flagsMask=0) {
         if ((flags_ ^ flags) & flagsMask) { return 0; }
         size_t n = 0;
         if (!noName) { n += StrTool::toJsonName(buffer+n, size-n, name_); }
         if (n < size-2) { buffer[n++] = '"'; }
-        if (isPassword() && !(flags & CVF_SHOW_PASSWORD)) {
+        if (isPassword() && !(flags & RF_SHOW_PASSWORD)) {
             for (size_t i=0; i < 8; i++) { if (n < size-2) buffer[n++] = '*'; }
         } else {
             n += toStr(buffer+n, size-n - 1);
@@ -634,11 +423,11 @@ public:
         return n;
     }
 
-    virtual size_t getWebUi(Print* stream, uint16_t flags=0, uint8_t flagsMask=0) {
+    virtual size_t getWebUi(Print* stream, uint32_t flags=0, RFFlag flagsMask=0) {
         if ((flags_ ^ flags) & flagsMask) { return 0; }
         size_t n = getWebUiCommon_(stream);
         get();
-        if (isPassword() && !(flags & CVF_SHOW_PASSWORD)) {
+        if (isPassword() && !(flags & RF_SHOW_PASSWORD)) {
             n += stream->print(FST(",\"V\":\"********\""));
         } else { n += stream->printf(FST(",\"V\":\"%s\""), value_); } 
         n += stream->printf(FST(",\"S\":%d"), size_-1);  // Max
@@ -654,7 +443,7 @@ public:
 \*----------------------------------------------------------------------*/
 class ConfigInt32Array : public ConfigArrayT<int32_t> {
 public:
-    ConfigInt32Array(const char* name, size_t size, const int32_t* deflt=nullptr, const char* info=nullptr, const char* fmt=nullptr, ConfigGroup* group=nullptr, int32_t* ptr=nullptr, bool (*setCb)(int32_t* val, void* cbData)=nullptr, void (*getCb)(int32_t* val, void* cbData)=nullptr, void* cbData=nullptr, uint8_t flags=0)
+    ConfigInt32Array(const char* name, size_t size, const int32_t* deflt=nullptr, const char* info=nullptr, const char* fmt=nullptr, RegGroup* group=nullptr, int32_t* ptr=nullptr, bool (*setCb)(int32_t* val, void* cbData)=nullptr, void (*getCb)(int32_t* val, void* cbData)=nullptr, void* cbData=nullptr, RFFlag flags=0)
         : ConfigArrayT(name, size, deflt, nullptr, info, fmt, group, ptr, setCb, getCb, cbData, flags) {
             sprintf(ths, FST("int32[%d]"), size);
             typeHelp_ = ths;
@@ -668,7 +457,7 @@ protected:
 \*----------------------------------------------------------------------*/
 class ConfigUInt32Array : public ConfigArrayT<uint32_t> {
 public:
-    ConfigUInt32Array(const char* name, size_t size, const uint32_t* deflt=nullptr, const char* info=nullptr, const char* fmt=nullptr, ConfigGroup* group=nullptr, uint32_t* ptr=nullptr, bool (*setCb)(uint32_t* val, void* cbData)=nullptr, void (*getCb)(uint32_t* val, void* cbData)=nullptr, void* cbData=nullptr, uint8_t flags=0)
+    ConfigUInt32Array(const char* name, size_t size, const uint32_t* deflt=nullptr, const char* info=nullptr, const char* fmt=nullptr, RegGroup* group=nullptr, uint32_t* ptr=nullptr, bool (*setCb)(uint32_t* val, void* cbData)=nullptr, void (*getCb)(uint32_t* val, void* cbData)=nullptr, void* cbData=nullptr, RFFlag flags=0)
         : ConfigArrayT(name, size, deflt, nullptr, info, fmt, group, ptr, setCb, getCb, cbData, flags) {
             sprintf(ths, FST("uint32[%d]"), size);
             typeHelp_ = ths;
@@ -682,7 +471,7 @@ protected:
 \*----------------------------------------------------------------------*/
 class ConfigInt16Array : public ConfigArrayT<int16_t> {
 public:
-    ConfigInt16Array(const char* name, size_t size, const int16_t* deflt=nullptr, const char* info=nullptr, const char* fmt=nullptr, ConfigGroup* group=nullptr, int16_t* ptr=nullptr, bool (*setCb)(int16_t* val, void* cbData)=nullptr, void (*getCb)(int16_t* val, void* cbData)=nullptr, void* cbData=nullptr, uint8_t flags=0)
+    ConfigInt16Array(const char* name, size_t size, const int16_t* deflt=nullptr, const char* info=nullptr, const char* fmt=nullptr, RegGroup* group=nullptr, int16_t* ptr=nullptr, bool (*setCb)(int16_t* val, void* cbData)=nullptr, void (*getCb)(int16_t* val, void* cbData)=nullptr, void* cbData=nullptr, RFFlag flags=0)
         : ConfigArrayT(name, size, deflt, nullptr, info, fmt, group, ptr, setCb, getCb, cbData, flags) {
             sprintf(ths, FST("int16[%d]"), size);
             typeHelp_ = ths;
@@ -696,7 +485,7 @@ protected:
 \*----------------------------------------------------------------------*/
 class ConfigUInt16Array : public ConfigArrayT<uint16_t> {
 public:
-    ConfigUInt16Array(const char* name, size_t size, const uint16_t* deflt=nullptr, const char* info=nullptr, const char* fmt=nullptr, ConfigGroup* group=nullptr, uint16_t* ptr=nullptr, bool (*setCb)(uint16_t* val, void* cbData)=nullptr, void (*getCb)(uint16_t* val, void* cbData)=nullptr, void* cbData=nullptr, uint8_t flags=0)
+    ConfigUInt16Array(const char* name, size_t size, const uint16_t* deflt=nullptr, const char* info=nullptr, const char* fmt=nullptr, RegGroup* group=nullptr, uint16_t* ptr=nullptr, bool (*setCb)(uint16_t* val, void* cbData)=nullptr, void (*getCb)(uint16_t* val, void* cbData)=nullptr, void* cbData=nullptr, RFFlag flags=0)
         : ConfigArrayT(name, size, deflt, nullptr, info, fmt, group, ptr, setCb, getCb, cbData, flags) {
             sprintf(ths, FST("uint16[%d]"), size);
             typeHelp_ = ths;
@@ -710,7 +499,7 @@ protected:
 \*----------------------------------------------------------------------*/
 class ConfigInt8Array : public ConfigArrayT<int8_t> {
 public:
-    ConfigInt8Array(const char* name, size_t size, const int8_t* deflt=nullptr, const char* info=nullptr, const char* fmt=nullptr, ConfigGroup* group=nullptr, int8_t* ptr=nullptr, bool (*setCb)(int8_t* val, void* cbData)=nullptr, void (*getCb)(int8_t* val, void* cbData)=nullptr, void* cbData=nullptr, uint8_t flags=0)
+    ConfigInt8Array(const char* name, size_t size, const int8_t* deflt=nullptr, const char* info=nullptr, const char* fmt=nullptr, RegGroup* group=nullptr, int8_t* ptr=nullptr, bool (*setCb)(int8_t* val, void* cbData)=nullptr, void (*getCb)(int8_t* val, void* cbData)=nullptr, void* cbData=nullptr, RFFlag flags=0)
         : ConfigArrayT(name, size, deflt, nullptr, info, fmt, group, ptr, setCb, getCb, cbData, flags) {
             sprintf(ths, FST("int8[%d]"), size);
             typeHelp_ = ths;
@@ -724,7 +513,7 @@ protected:
 \*----------------------------------------------------------------------*/
 class ConfigUInt8Array : public ConfigArrayT<uint8_t> {
 public:
-    ConfigUInt8Array(const char* name, size_t size, const uint8_t* deflt=nullptr, const char* info=nullptr, const char* fmt=nullptr, ConfigGroup* group=nullptr, uint8_t* ptr=nullptr, bool (*setCb)(uint8_t* val, void* cbData)=nullptr, void (*getCb)(uint8_t* val, void* cbData)=nullptr, void* cbData=nullptr, uint8_t flags=0)
+    ConfigUInt8Array(const char* name, size_t size, const uint8_t* deflt=nullptr, const char* info=nullptr, const char* fmt=nullptr, RegGroup* group=nullptr, uint8_t* ptr=nullptr, bool (*setCb)(uint8_t* val, void* cbData)=nullptr, void (*getCb)(uint8_t* val, void* cbData)=nullptr, void* cbData=nullptr, RFFlag flags=0)
         : ConfigArrayT(name, size, deflt, nullptr, fmt, info, group, ptr, setCb, getCb, cbData, flags) {
             sprintf(ths, FST("uint8[%d]"), size);
             typeHelp_ = ths;
@@ -738,7 +527,7 @@ protected:
 \*----------------------------------------------------------------------*/
 class ConfigIpAddr : public ConfigArrayT<uint8_t> {
 public:
-    ConfigIpAddr(const char* name, const uint8_t* deflt=nullptr, const char* info=nullptr, const char* fmt=nullptr, ConfigGroup* group=nullptr, uint8_t* ptr=nullptr, bool (*setCb)(uint8_t* val, void* cbData)=nullptr, void (*getCb)(uint8_t* val, void* cbData)=nullptr, void* cbData=nullptr, uint8_t flags=0)
+    ConfigIpAddr(const char* name, const uint8_t* deflt=nullptr, const char* info=nullptr, const char* fmt=nullptr, RegGroup* group=nullptr, uint8_t* ptr=nullptr, bool (*setCb)(uint8_t* val, void* cbData)=nullptr, void (*getCb)(uint8_t* val, void* cbData)=nullptr, void* cbData=nullptr, RFFlag flags=0)
         : ConfigArrayT(name, 4, deflt, FST("IP_ADR"), info, fmt, group, ptr, setCb, getCb, cbData, flags) {
             if (!fmt) { fmt_ = FST("%d.%d.%d.%d"); }
         }
@@ -755,7 +544,7 @@ public:
         buffer[n] = '\0';
         return n;
     }
-    virtual size_t toJsonStr(char* buffer, size_t size, bool noName=false, uint16_t flags=0, uint8_t flagsMask=0) {
+    virtual size_t toJsonStr(char* buffer, size_t size, bool noName=false, uint32_t flags=0, RFFlag flagsMask=0) {
         if ((flags_ ^ flags) & flagsMask) { return 0; }
         size_t n = 0;
         if (!noName) { n += StrTool::toJsonName(buffer+n, size-n, name_); }
@@ -783,7 +572,7 @@ public:
         }
         return false;
     }
-    virtual size_t getWebUi(Print* stream, uint16_t flags=0, uint8_t flagsMask=0) {
+    virtual size_t getWebUi(Print* stream, uint32_t flags=0, RFFlag flagsMask=0) {
         if ((flags_ ^ flags) & flagsMask) { return 0; }
         size_t n = getWebUiCommon_(stream);
         get();

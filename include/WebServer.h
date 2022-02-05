@@ -75,8 +75,8 @@ protected:
   static void pushError(int code, const char* st, bool web_error = 500, uint16_t timeout = 1000);
 
 #if ENABLE_WS_STATE_MONITOR && ENABLE_STATE_REG
-  static void wsStateChangeCallback(StateGroup& group, void* data);
-  void wsStateChangeCallback_(StateGroup& group);
+  static void wsStateChangeCallback(RegGroup& group, void* data);
+  void wsStateChangeCallback_(RegGroup& group);
 #endif
 
 

@@ -5,14 +5,17 @@
 
 #include "Config.h"
 #include "ConfigReg.h"
+#include "StateReg.h"
 #include "ROS1.h"
 #include "Battery.h"
 
 
-ConfigGroup configGroupRos1(FST("ROS1"));
+RegGroup configGroupRos1(FST("ROS1"));
 
 ConfigStr configRos1Host(FST("Host"), 32, ROS1_HOST, FST("ROS1 server"), 0, &configGroupRos1);
 ConfigUInt16 configRos1Port(FST("Port"), ROS1_PORT, FST("ROS1 server port number"), 0, &configGroupRos1);
+StateStr stateRos1Connection(FST("Connection"), FST("Not connected"), FST("ROS1 connection state"), 0, &configGroupRos1);
+
 
 WiFiClient ros1WifiClient;
 ros::NodeHandle_<Ros1WiFiLink> ros1Node;
@@ -80,15 +83,15 @@ bool ros1CheckConnectionState() {
         if (ros1LastConnectTs_ == 0) { DEBUG_printf(FST("ROS1 Wifi host:%s, port:%d\n"), configRos1Host.get(), configRos1Port.get()); }
         ros1LastConnectTs_ = now;
         if (!ros1WifiClient.connect(configRos1Host.get(), configRos1Port.get())) {
-            DEBUG_println(FST("Waiting for ROS1 connection"));
+            DEBUG_println(stateRos1Connection.set(FST("Waiting for ROS1 connection")));
             return false;
         }
-        DEBUG_println(FST("ROS1 WIFI client connected"));
+        DEBUG_println(stateRos1Connection.set(FST("ROS1 WIFI client connected")));
         ros1Node.initNode();
         ros1IsConnected_ = true;
     }
     if (!ros1WifiClient.connected()) {
-        DEBUG_println(FST("Lost ROS1 WIFI client connection"));
+        DEBUG_println(stateRos1Connection.set(FST("Lost ROS1 WIFI client connection")));
         ros1IsConnected_ = false;
         ros1IsAdvertised_ = false;
         ros1IsReady_ = false;
@@ -106,18 +109,18 @@ bool ros1CheckConnectionState() {
         ros1Node.advertise(ros1PublisherBattery);
 #endif
         ros1Node.subscribe(ros1Subscriber1);
-        DEBUG_println(FST("ROS1 node is advertised"));
+        DEBUG_println(stateRos1Connection.set(FST("ROS1 node is advertised")));
         ros1IsAdvertised_ = true;
     }
     if (ros1IsReady_) {
         if (ros1Node.connected()) { return true; }
-        DEBUG_println(FST("Lost ROS1 node connection"));
+        DEBUG_println(stateRos1Connection.set(FST("Lost ROS1 node connection")));
         ros1IsAdvertised_ = false;
         ros1IsReady_ = false;
         return false;
     }
     if (ros1Node.connected()) {
-        DEBUG_println(FST("ROS1 node is ready"));
+        DEBUG_println(stateRos1Connection.set(FST("ROS1 node is ready")));
         ros1IsReady_ = true;
         return true;
     }

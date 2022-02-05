@@ -14,7 +14,7 @@
 
 
 ConfigUInt8 configDisplayBrightness(FST("LCD Brightness"), 200, FST("Brightness of LCD backlight"), nullptr, nullptr, nullptr, setDisplayBrightness);
-ConfigUInt16Array configTouchCalibration(FST("Touch Calibration"), 8,0,0,0,0,0,0,0,0, CVF_HIDDEN);
+ConfigUInt16Array configTouchCalibration(FST("Touch Calibration"), 8,0,0,0,0,0,0,0,0, RF_HIDDEN);
 
 extern ConfigStr configSSID;
 

@@ -146,11 +146,11 @@ void WebServer::handleRoot(AsyncWebServerRequest* request) {
 }
   
 #if ENABLE_WS_STATE_MONITOR && ENABLE_STATE_REG
-void WebServer::wsStateChangeCallback(StateGroup& group, void* data) {
+void WebServer::wsStateChangeCallback(RegGroup& group, void* data) {
   ((WebServer*)data)->wsStateChangeCallback_(group);
 }
 
-void WebServer::wsStateChangeCallback_(StateGroup& group) {
+void WebServer::wsStateChangeCallback_(RegGroup& group) {
   if (isReady() && ws.availableForWriteAll()) {
     char namePrefix[64];
     char buffer[WS_BUFFER_SIZE];
@@ -320,8 +320,8 @@ void WebServer::begin() {
   server.begin();
   
 #if ENABLE_WS_STATE_MONITOR && ENABLE_STATE_REG
-  if (StateGroup::mainGroup) {
-    StateGroup::mainGroup->addCallback(wsStateChangeCallback, this);
+  if (RegGroup::mainGroup) {
+    RegGroup::mainGroup->addChangeCallback(wsStateChangeCallback, this);
   }
 #endif
 }

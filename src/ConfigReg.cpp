@@ -19,8 +19,8 @@
 #include "Secret.h"
 #include "Command.h"
 
-ConfigGroup* ConfigGroup::mainGroup = nullptr;
-size_t ConfigVar::count_ = 0;
+RegGroup* RegGroup::mainGroup = nullptr;
+size_t RegVar::count_ = 0;
 
 /************************************************************************\
 |* Config Commands
@@ -69,7 +69,7 @@ FST("Set default configuration"), &cmdRegConfig
 
 Command cmdGetConfig(FST("get"), 
 [] (const char* args, Print* stream) {
-    ConfigGroup::mainGroup->toJson(stream, true);
+    RegGroup::mainGroup->toJson(stream, true, RF_IS_CONFIG, RF_IS_CONFIG);
     stream->println();
     return EC_OK;
 },
@@ -79,7 +79,7 @@ nullptr, CT_APP_JSON
 
 Command cmdConfigVar(FST("var"), 
 [] (const char* args, Print* stream) {
-    ConfigVar* var = ConfigGroup::mainGroup->findVarByFullName(args, false);
+    RegVar* var = RegGroup::mainGroup->findVarByFullName(args, false);
     if (var) {
         while (*args && *args != ' ') { args++; };
         while (*args == ' ') { args++; }
@@ -103,7 +103,7 @@ FST("Get or set configuration variable"), &cmdRegConfig, FST("<name> [value]"), 
 
 Command cmdGetConfigUi(FST("ui"), 
 [] (const char* args, Print* stream) {
-    ConfigGroup::mainGroup->getWebUi(stream, true);
+    RegGroup::mainGroup->getWebUi(stream, true, RF_IS_CONFIG, RF_IS_CONFIG);
     stream->println();
     return EC_OK;
 },
@@ -118,7 +118,7 @@ nullptr, CT_APP_JSON
 
 void saveConfig() {
   char buffer[CONFIG_BUFFER_SIZE];
-  size_t size = ConfigGroup::mainGroup->toJsonStr(buffer, sizeof(buffer), true, CVF_SHOW_PASSWORD, CVF_NOT_PERSISTED);
+  size_t size = RegGroup::mainGroup->toJsonStr(buffer, sizeof(buffer), true, RF_SHOW_PASSWORD | RF_IS_CONFIG, RF_NOT_PERSISTED | RF_IS_CONFIG);
   if (size >= CONFIG_BUFFER_SIZE-1) {
     DEBUG_printf(FST("!!! Not enough buffer space (%d) to save config to EEPROM !!!\n"), CONFIG_BUFFER_SIZE);
     return;
@@ -182,40 +182,44 @@ bool parseConfigJson(char* jsonStr) {
     return true;
   }
   JsonObject obj = doc.as<JsonObject>();
-  return ConfigGroup::mainGroup->setFromJson(obj);
+  return RegGroup::mainGroup->setFromJson(obj);
 }
 
 
 void defaultConfig() {
-  if (ConfigGroup::mainGroup) { ConfigGroup::mainGroup->setDefaults(); }
+  if (RegGroup::mainGroup) { RegGroup::mainGroup->setDefaults(); }
 }
 
 
 /************************************************************************\
-|* Config Group
+|* Registration Group
 \************************************************************************/
 
-size_t ConfigGroup::toJsonStr(char* buffer, size_t size, bool noName, uint16_t flags/*=0*/, uint8_t flagsMask/*=0*/) {
+size_t RegGroup::toJsonStr(char* buffer, size_t size, bool noName, uint32_t flags/*=0*/, RFFlag flagsMask/*=0*/) {
     size_t n = 0;
     if (!noName) { n += StrTool::toJsonName(buffer+n, size-n, name_); }
     if (n < size-1) { buffer[n++] = '{'; }
     bool first = true;
     for(auto v: vars_) {
-      if (!first && (n < size-1)) { buffer[n++] = ','; }
-      first = false; 
-      n += v->toJsonStr(buffer+n, size-n, false, flags, flagsMask);
+      if (!((v->flags() ^ flags) & flagsMask)) {
+        if (!first && (n < size-1)) { buffer[n++] = ','; }
+        first = false; 
+        n += v->toJsonStr(buffer+n, size-n, false, flags, flagsMask);
+      }
     }
     for(auto g: children_) {
-      if (!first && (n < size-1)) { buffer[n++] = ','; }
-      first = false; 
-      n += g->toJsonStr(buffer+n, size-n, false, flags, flagsMask);
+      if (!((g->flags() ^ flags) & flagsMask)) {
+        if (!first && (n < size-1)) { buffer[n++] = ','; }
+        first = false; 
+        n += g->toJsonStr(buffer+n, size-n, false, flags, flagsMask);
+      }
     }
     if (n < size-1) { buffer[n++] = '}'; }
     buffer[n] = '\0';
     return n;
 }
 
-size_t ConfigGroup::toJson(Print* stream, bool noName, uint16_t flags/*=0*/, uint8_t flagsMask/*=0*/) {
+size_t RegGroup::toJson(Print* stream, bool noName, uint32_t flags/*=0*/, RFFlag flagsMask/*=0*/) {
     char buffer[128];
     size_t size = sizeof(buffer);
     size_t n = 0;
@@ -224,22 +228,26 @@ size_t ConfigGroup::toJson(Print* stream, bool noName, uint16_t flags/*=0*/, uin
     stream->write(buffer, n);
     bool first = true;
     for(auto v: vars_) {
-      if (!first) { stream->write(','); n++; }
-      first = false; 
-      size_t m = v->toJsonStr(buffer, size, false, flags, flagsMask);
-      stream->write(buffer, m);
-      n += m;
+      if (!((v->flags() ^ flags) & flagsMask)) {
+        if (!first) { stream->write(','); n++; }
+        first = false; 
+        size_t m = v->toJsonStr(buffer, size, false, flags, flagsMask);
+        stream->write(buffer, m);
+        n += m;
+      }
     }
     for(auto g: children_) {
-      if (!first) { stream->write(','); n++; }
-      first = false; 
-      n += g->toJson(stream, false, flags, flagsMask);
+      if (!((g->flags() ^ flags) & flagsMask)) {
+        if (!first) { stream->write(','); n++; }
+        first = false; 
+        n += g->toJson(stream, false, flags, flagsMask);
+      }
     }
     stream->write('}'); n++;
     return n;
 }
 
-size_t ConfigGroup::getWebUi(Print* stream, bool noName, uint16_t flags/*=0*/, uint8_t flagsMask/*=0*/) {
+size_t RegGroup::getWebUi(Print* stream, bool noName, uint32_t flags/*=0*/, RFFlag flagsMask/*=0*/) {
     char buffer[128];
     size_t size = sizeof(buffer);
     size_t n = 0;
@@ -252,7 +260,7 @@ size_t ConfigGroup::getWebUi(Print* stream, bool noName, uint16_t flags/*=0*/, u
     bool first = true;
     n += stream->print(FST("},\"_VARS_\":["));
     for(auto v: vars_) {
-      if (!v->isHidden()) {
+      if (!v->isHidden() && !((v->flags() ^ flags) & flagsMask) ) {
         if (!first) { stream->write(','); n++; }
         first = false; 
         size_t m = v->getWebUi(stream, flags, flagsMask);
@@ -261,29 +269,31 @@ size_t ConfigGroup::getWebUi(Print* stream, bool noName, uint16_t flags/*=0*/, u
     }
     stream->write(']'); n++;
     for(auto g: children_) {
-      if (!first) { stream->write(','); n++; }
-      first = false; 
-      n += g->getWebUi(stream, false, flags, flagsMask);
+      if (!((g->flags() ^ flags) & flagsMask)) {
+        if (!first) { stream->write(','); n++; }
+        first = false; 
+        n += g->getWebUi(stream, false, flags, flagsMask);
+      }
     }
     stream->write('}'); n++;
     return n;
 }
 
-ConfigGroup* ConfigGroup::findChild(const char* name) {
+RegGroup* RegGroup::findChild(const char* name) {
     for(auto g: children_) {
       if (StrTool::matchesCleanName(name, g->name())) { return g; }
     }
     return nullptr;
 }
 
-ConfigVar* ConfigGroup::findVar(const char* name) {
+RegVar* RegGroup::findVar(const char* name) {
     for(auto v: vars_) {
       if (StrTool::matchesCleanName(name, v->name())) { return v; }
     }
     return nullptr;
 }
 
-ConfigVar* ConfigGroup::findVarByFullName(const char* name, bool matchCase/*=true*/) {
+RegVar* RegGroup::findVarByFullName(const char* name, bool matchCase/*=true*/) {
     size_t n = 0;
     for(auto v: vars_) {
       n = StrTool::matchesNamePart(name, v->name(), matchCase);
@@ -296,8 +306,8 @@ ConfigVar* ConfigGroup::findVarByFullName(const char* name, bool matchCase/*=tru
     return nullptr;
 }
 
-ConfigVar* ConfigGroup::get(size_t n) {
-    if (n >= varCount_) { return nullptr; }
+RegVar* RegGroup::get(size_t n) {
+    if (n >= size()) { return nullptr; }
     if (n < vars_.size()) { return vars_.at(n); }
     n -= vars_.size();
     for(auto g: children_) {
@@ -307,19 +317,18 @@ ConfigVar* ConfigGroup::get(size_t n) {
     return nullptr;
 }
 
-size_t ConfigGroup::getVarName(char* buffer, size_t size, size_t index) {
-
-    if (index >= varCount_) { return 0; }
+size_t RegGroup::getVarName(char* buffer, size_t bSize, size_t index) {
+    if (index >= size()) { return 0; }
     if (index < vars_.size()) { 
-      return StrTool::toCleanName(buffer, size, vars_.at(index)->name()); 
+      return StrTool::toCleanName(buffer, bSize, vars_.at(index)->name()); 
     }
     index -= vars_.size();
     for(auto g: children_) {
       if (index < g->size()) { 
-        size_t n = StrTool::toCleanName(buffer, size, g->name_);
-        if (n < size -1) { buffer[n++] = '.'; }
+        size_t n = StrTool::toCleanName(buffer, bSize, g->name_);
+        if (n < bSize -1) { buffer[n++] = '.'; }
         buffer[n] = '\0';
-        return g->getVarName(buffer+n, size-n, index); 
+        return g->getVarName(buffer+n, bSize-n, index); 
       }
       index -= g->size();
     }
@@ -327,8 +336,8 @@ size_t ConfigGroup::getVarName(char* buffer, size_t size, size_t index) {
 }
 
 
-std::vector<ConfigVar*>::iterator ConfigGroup::getIt(size_t n) {
-    if (n >= varCount_) { return vars_.end(); }
+std::vector<RegVar*>::iterator RegGroup::getIt(size_t n) {
+    if (n >= size()) { return vars_.end(); }
     if (n <= vars_.size()) { return vars_.begin() + n; }
     n -= vars_.size();
     for(auto g: children_) {
@@ -339,14 +348,14 @@ std::vector<ConfigVar*>::iterator ConfigGroup::getIt(size_t n) {
 }
 
 
-bool ConfigGroup::setFromJson(const JsonObject& obj) {
+bool RegGroup::setFromJson(const JsonObject& obj) {
   bool err = false;
   // Loop through all the key-value pairs in obj
   for (JsonPair p : obj) {
-    ConfigGroup* child = findChild(p.key().c_str());
+    RegGroup* child = findChild(p.key().c_str());
     if (child) { err |= child->setFromJson(p.value()); }
     else {
-      ConfigVar* var = findVar(p.key().c_str());
+      RegVar* var = findVar(p.key().c_str());
       if (var) { err |= var->setFromJson(p.value()); }
       else { 
         DEBUG_printf(FST("Could not find JSON config \"%s\"\n"), p.key().c_str());
@@ -357,7 +366,20 @@ bool ConfigGroup::setFromJson(const JsonObject& obj) {
   return err;
 }
 
-void ConfigGroup::setDefaults() {
+void RegGroup::setDefaults() {
     for(auto v: vars_) { v->setDefault(); }
     for(auto g: children_) { g->setDefaults(); }
+}
+
+void RegGroup::addVar(RegVar* var) { 
+  vars_.push_back(var);
+  if (var->flags() & RF_IS_CONFIG) { updateConfigCount_(1); }
+  if (var->flags() & RF_IS_STATE) { updateStateCount_(1); }
+}
+
+void RegGroup::removeVar(RegVar* var) { 
+  size_t tmp=vars_.size(); 
+  vars_.erase(remove(vars_.begin(), vars_.end(), var), vars_.end()); 
+  if (var->flags() & RF_IS_CONFIG) { updateConfigCount_(vars_.size() - tmp); }
+  if (var->flags() & RF_IS_STATE) { updateStateCount_(vars_.size() - tmp); }
 }

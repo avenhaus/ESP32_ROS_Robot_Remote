@@ -406,7 +406,7 @@ function create_setting_entry(uicfg, gpath, sentry) {
 
     var config_entry = {
         index: uicfg.elements.length,
-        etype: sentry.E ? "STATE" : "CFG",
+        etype: sentry.F & 1 ? "CFG" : "STATE",
         label: slabel,
         help: shelp,
         defaultvalue: svalue,

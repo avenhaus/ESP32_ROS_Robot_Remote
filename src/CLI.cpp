@@ -45,7 +45,7 @@ const char* CommandLineInterpreter::execute(const char* cmd) {
   if ((n = StrTool::tryRead(FST("HELP"), cmd))) { return help(); }
   if ((n = StrTool::tryRead(FST("?"), cmd))) { return help(); }
 
-  ConfigVar* var = ConfigGroup::mainGroup->findVarByFullName(cmd, false);
+  RegVar* var = RegGroup::mainGroup->findVarByFullName(cmd, false);
   if (var) {
     while (*cmd && *cmd != ' ') { cmd++; };
     while (*cmd == ' ') { cmd++; }
@@ -75,9 +75,9 @@ const char* CommandLineInterpreter::execute(const char* cmd) {
 const char* CommandLineInterpreter::help() {
   if (stream) {
     stream->println();
-    //for(auto i : *ConfigGroup::mainGroup) {
-    for (ConfigGroup::Iterator i = ConfigGroup::mainGroup->begin(), end = ConfigGroup::mainGroup->end(); i != end; i++) {
-      ConfigVar& v = *i;
+    //for(auto i : *RegGroup::mainGroup) {
+    for (RegGroup::Iterator i = RegGroup::mainGroup->begin(), end = RegGroup::mainGroup->end(); i != end; i++) {
+      RegVar& v = *i;
       if (v.isHidden()) { continue; }
       char name[64];
       i.getVarName(name, sizeof(name));

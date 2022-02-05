@@ -148,6 +148,7 @@ void loop() {
 
   stateRegRun();
 
+ 
   #if BATTERY_PIN >= 0 
   batteryRun(now);
   if (batteryChargeLevel <= 2) {

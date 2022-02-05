@@ -20,10 +20,10 @@ ConfigStr configTimeFormat(FST("Time Format"), 16, TIME_FORMAT, FST("Format stri
 ConfigStr configDateFormat(FST("Date Format"), 16, DATE_FORMAT, FST("Format string used to print date"));
 #endif
 
-ConfigGroup configGroupNetwork(FST("WIFI"), nullptr, FST("Network Settings"));
+RegGroup configGroupNetwork(FST("WIFI"), nullptr, FST("Network Settings"));
 
 ConfigStr configSSID(FST("SSID"), 36, WIFI_SSID, FST("Name of WIFI network"), 0, &configGroupNetwork);
-ConfigStr configPassword(FST("Password"), 64, WIFI_PASSWORD, FST("Password for WIFI network"), 0, &configGroupNetwork, 0,0,0,0, CVF_PASSWORD);
+ConfigStr configPassword(FST("Password"), 64, WIFI_PASSWORD, FST("Password for WIFI network"), 0, &configGroupNetwork, 0,0,0,0, RF_PASSWORD);
 ConfigStr configHostname(FST("Hostname"), 32, HOSTNAME, FST("Name of this device on the network"), 0, &configGroupNetwork);
 
 ConfigIpAddr configIpAddr(FST("IP"), 0, FST("Fixed IP address of this device"), 0, &configGroupNetwork);
