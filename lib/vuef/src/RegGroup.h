@@ -13,7 +13,7 @@
 #include <iterator>
 #include <cstddef>
 
-#include "Config.h"
+#include "VUEF.h"
 #include "Helper.h"
 
 // Disable warning about char being deprecated. Not sure why it's needed...

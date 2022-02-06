@@ -5,22 +5,19 @@
 #include <Arduino.h>
 
 #include "Config.h"
-#include "ConfigReg.h"
+#include "VUEF.h"
 #include "SPIFFS.h"
 #include "Display.h"
 #include "ROS1.h"
 #include "Analog.h"
 #include "Battery.h"
 #include "Encoder.h"
-#include "StateReg.h"
 
 
 void extendedInputSetup();
 uint32_t getExtendedInputs();
 extern uint32_t extended_inputs;
 extern uint32_t old_extended_inputs;
-
-Print* debugStream = &Serial;
 
 Encoder encoderLeft;
 Encoder encoderRight;
@@ -42,22 +39,15 @@ int32_t joyButtons[JOY_BUTTON_SIZE] = {0};
 
 uint32_t inputSameCount = 0;
 
-void networkInit(void);
-void networkRun(void);
-
 
 void setup() {
-  Serial.begin(SERIAL_SPEED);
-  DEBUG_printf(FST("\n\n%s %s | %s | %s\n"), PROJECT_NAME, VERSION_NUMBER, VERSION_DATE, VERSION_TIME);
-  DEBUG_printf(FST("Compiled with ESP32 SDK:%s\n\n"), ESP.getSdkVersion());
-
   adcInit();
   adc2RegSave(); // Save ADC2 registers before WiFi
 
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, HIGH);  
 
-  loadConfig();
+  vuefInit();
 
   // This must be executed before Display initialization.
   // Otherwise SPI gets messed up for some reason.
@@ -69,15 +59,6 @@ void setup() {
   DEBUG_print(F("Screen Done\n"));
   #endif
   
-
-#if  ENABLE_WEB_SERVER
-  if(!SPIFFS.begin(true)){
-    DEBUG_println(FST("An Error has occurred while mounting SPIFFS"));
-    return;
-  }
-#endif
-
-  networkInit();
   rosInit();
 
   #if ENABLE_DISPLAY
@@ -87,9 +68,7 @@ void setup() {
 }
 
 void loop() {
-  #if !USE_NETWORK_TASK
-  networkRun();
-  #endif
+  vuefRun();
  
   getExtendedInputs();  
   if (extended_inputs != old_extended_inputs) { inputSameCount = 0; }
@@ -145,8 +124,6 @@ void loop() {
   #if ENABLE_DISPLAY
   guiRun();
   #endif
-
-  stateRegRun();
 
  
   #if BATTERY_PIN >= 0 

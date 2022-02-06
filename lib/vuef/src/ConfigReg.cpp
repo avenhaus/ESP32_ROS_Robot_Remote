@@ -13,11 +13,11 @@
 #include <WiFi.h>
 #include <EEPROM.h>
 
-#include "Config.h"
+#include "VUEF.h"
 #include "ConfigReg.h"
 #include "Helper.h"
-#include "Secret.h"
 #include "Command.h"
+
 
 RegGroup* RegGroup::mainGroup = nullptr;
 size_t RegVar::count_ = 0;
@@ -37,7 +37,7 @@ Command cmdBasicConfig(FST("basics"),
       #define SPIFFS_LOC "No SD"
     #endif // ENABLE_SPIFFS
     stream->printf(FST("FW name: %s # FW version: %s # primary sd:" SPIFFS_LOC " # secondary sd:No SD # authentication:no # webcommunication: Sync: /ws # hostname:%s # tabs: " WEBUI_TABS " # start: " WEBUI_START_TAB "\n"),
-    PROJECT_NAME, VERSION_NUMBER, fullHostname);
+    PROJECT_NAME, PROJECT_VERSION, fullHostname);
     return EC_OK;
 },
 FST("Get basic configuration"), &cmdRegConfig
@@ -262,7 +262,7 @@ size_t RegGroup::getWebUi(Print* stream, bool noName, uint32_t flags/*=0*/, RFFl
     for(auto v: vars_) {
       if (!v->isHidden() && !((v->flags() ^ flags) & flagsMask) ) {
         if (!first) { stream->write(','); n++; }
-        first = false; 
+        first = false;
         size_t m = v->getWebUi(stream, flags, flagsMask);
         n += m;
       }
@@ -270,7 +270,7 @@ size_t RegGroup::getWebUi(Print* stream, bool noName, uint32_t flags/*=0*/, RFFl
     stream->write(']'); n++;
     for(auto g: children_) {
       if (!((g->flags() ^ flags) & flagsMask)) {
-        if (!first) { stream->write(','); n++; }
+        { stream->write(','); n++; }
         first = false; 
         n += g->getWebUi(stream, false, flags, flagsMask);
       }

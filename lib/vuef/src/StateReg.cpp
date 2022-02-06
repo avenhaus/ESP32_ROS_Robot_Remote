@@ -6,7 +6,7 @@
 \*======================================================================*/
 
 #include <Arduino.h>
-#include "Config.h"
+#include "VUEF.h"
 #include "StateReg.h"
 #include "Helper.h"
 #include "Command.h"

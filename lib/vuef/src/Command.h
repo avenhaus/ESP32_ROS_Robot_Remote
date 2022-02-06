@@ -12,7 +12,7 @@
 #include <iterator>
 #include <cstddef>
 
-#include "Config.h"
+#include "VUEF.h"
 
 extern const char CT_TEXT_PLAIN[] PROGMEM;
 extern const char CT_APP_JSON[] PROGMEM;

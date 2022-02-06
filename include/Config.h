@@ -120,75 +120,16 @@ GPIO_34 - GPIO_39 have no internal pullup / pulldown.
 
 #define EX_INPUT(BIT) (BIT < 0 ? 0 : (extended_inputs >> BIT) & 1)
 
-/* ============================================== *\
- * Debug
-\* ============================================== */
-
-#define SERIAL_DEBUG 1
-#define SERIAL_SPEED 115200
-
-#if SERIAL_DEBUG < 1
-#define DEBUG_println(...) 
-#define DEBUG_print(...) 
-#define DEBUG_printf(...) 
-#else
-#define DEBUG_println(...) if (debugStream) {debugStream->println(__VA_ARGS__);}
-#define DEBUG_print(...) if (debugStream) {debugStream->print(__VA_ARGS__);}
-#define DEBUG_printf(...) if (debugStream) {debugStream->printf(__VA_ARGS__);}
-#endif
-
-#define FST (const char *)F
-#define PM (const __FlashStringHelper *)
-
-extern Print* debugStream;
 
 /* ============================================== *\
  * Constants
 \* ============================================== */
 
-
-#define COMMAND_BUFFER_SIZE 64
-
-#define ENABLE_OTA 1
-#define ENABLE_TELNET 1
-#define ENABLE_WEB_SERVER 1
-#define WEBUI_TABS "control,settings,files,wizard"
-#define WEBUI_START_TAB "settings"
-#define ENABLE_EMBEDDED_WEB_UI 1
-#define ENABLE_SPIFFS_WEB_UI 1
-#define ENABLE_SPIFFS_WEB_CONTENT 0
-#define ENABLE_MDNS 1
-#define ENABLE_NTP 1
-#define ENABLE_SPIFFS 1
-
-#define ENABLE_STATE_REG 1
-#define ENABLE_WS_STATE_MONITOR 1
-// #define USE_NETWORK_TASK 1
-
 #define ENABLE_DISPLAY 1
-
-// PST8PDT,M3.2.0,M11.1.0
-#define TIME_ZONE "PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00"
-#define TIME_FORMAT "%H:%M:%S"
-#define DATE_FORMAT "%d.%m.%Y"
-
-// "time.nist.gov"
-#define NTP_SERVER_1 "132.163.96.1"
-// "time.windows.com"
-#define NTP_SERVER_2 "13.65.245.138"
-
 
 #define ROS1_HOST "192.168.0.155"
 #define ROS1_PORT 11411
 
-#define HOSTNAME "ROS-remote"
-#define HTTP_PORT 80
-#define TELNET_PORT 23
-
-const char PROJECT_NAME[] PROGMEM = "ROS Remote";
-const char VERSION_NUMBER[] PROGMEM = "0.2";
-const char VERSION_DATE[] PROGMEM = __DATE__;
-const char VERSION_TIME[] PROGMEM = __TIME__;
 
 typedef enum JoyAxis {
     L_JOY_AXIS_X,
@@ -228,53 +169,5 @@ typedef enum JoyButton {
 } JoyButton;
 extern int32_t joyButtons[JOY_BUTTON_SIZE];
 
-
-typedef enum ErrorCode {
-    EC_OK,
-    EC_ERROR=500,
-    EC_UNKNOWN,
-    EC_TIMEOUT,
-    EC_BAD_ARGUMENT,
-    EC_HTTP_OK=200,
-    EC_BAD_REQUEST=400,
-    EC_UNAUTHORIZED=401,
-    EC_PAYMENT_REQUIRED=402,
-    EC_FORBIDDEN=403,
-    EC_NOT_FOUND=404,
-    EC_METHOD_NOT_ALLOWED=405,
-    EC_NOT_ACCEPTABLE=406,
-    EC_PROXY_AUTHENTICATION_REQUIRED=407,
-    EC_REQUEST_TIMEOUT=408,
-    EC_CONFLICT=409,
-    EC_GONE=410,
-    EC_LENGTH_REQUIRED=411,
-    EC_PRECONDITION_FAILED=412,
-    EC_PAYLOAD_TOO_LARGE=413,
-    EC_URI_TOO_LONG=414,
-    EC_UNSUPPORTED_MEDIA=415,
-    EC_RANGE_NOT_SATISFIABLE=416,
-    EC_EXPECTATION_FAILED=417,
-    EC_MISDIRECTED_REQUEST=421,
-    EC_UNPROCESSABLE_ENTITY=422,
-    EC_LOCKED=423,
-    EC_FAILED_DEPENDENCY=424,
-    EC_TOO_EARLY=425,
-    EC_UPGRADE_REQUIRED=426,
-    EC_PRECONDITION_REQUIRED=428,
-    EC_TOO_MANY_REQUESTS=429,
-    EC_REQUEST_HEADER_FIELDS_TOO_LARGE=431,
-    EC_UNAVAILABLE_FOR_LEGAL_REASONS=451,
-    EC_INTERNAL_SERVER_ERROR=500,
-    EC_NOT_IMPLEMENTED=501,
-    EC_BAD_GATEWAY=502,
-    EC_SERVICE_UNAVAILABLE=503,
-    EC_GATEWAY_TIMEOUT=504,
-    EC_HTTP_VERSION_NOT_SUPPORTED=505,
-    EC_VARIANT_ALSO_NEGOTIATES=506,
-    EC_INSUFFICIENT_STORAGE=507,
-    EC_LOOP_DETECTED=508,
-    EC_NOT_EXTENDED=510,
-    EC_NETWORK_AUTHENTICATION_REQUIRED=511
-} ErrorCode;
 
 #endif

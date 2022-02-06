@@ -23,7 +23,7 @@
 #include "Config.h"
 #include "Battery.h"
 #include "Analog.h"
-#include "ConfigReg.h"
+#include "VUEF.h"
 
 #include "driver/adc.h"
 #include "esp_adc_cal.h"

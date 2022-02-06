@@ -16,5 +16,6 @@ sed -i "s/unsigned int index_html_gz_len/const size_t INDEX_HTML_GZ_SIZE/g" ./ou
 sed -i "s/unsigned char index_html_gz/const uint8_t INDEX_HTML_GZ/g" ./out.h
 sed -i "s/] = {/] PROGMEM = {/g" ./out.h
 mv ./out.h ../include/WebUi.h
+rm WebUI.h
 :: move /y index.html.gz ../data/index.html.gz
 

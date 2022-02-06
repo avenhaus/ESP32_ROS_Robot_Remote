@@ -4,15 +4,31 @@
 #include <time.h>
 #include <sys/time.h>
 
-#include "Config.h"
+#include "VUEF.h"
 #include "Helper.h"
 #include "ConfigReg.h"
 #include "Command.h"
-#include "Secret.h"
 #include "Network.h"
 #include "TcpServer.h"
 #include "WebServer.h"
 
+#if __has_include("Secret.h")
+  #include "Secret.h"
+#endif
+
+
+#ifndef WIFI_SSID
+#define WIFI_SSID "Best WIFI"
+#endif
+
+#ifndef WIFI_PASSWORD
+#define WIFI_PASSWORD "WIFI Password"
+#endif
+
+#ifndef WIFI_ACCESS_POINT_PASSWORD
+// Minimum 8 characters !!
+#define WIFI_ACCESS_POINT_PASSWORD "access42"
+#endif
 
 #if ENABLE_NTP
 ConfigStr configTimeZone(FST("Time Zone"), 48, TIME_ZONE, FST("Time zone used for NTP"));

@@ -7,9 +7,10 @@
 #include <WiFi.h>
 #include <EEPROM.h>
 
-#include "Config.h"
+#include "VUEF.h"
 #include "Command.h"
 #include "Helper.h"
+
 
 CommandRegistry* CommandRegistry::mainCmdReg = nullptr;
 
@@ -167,8 +168,8 @@ Command cmdStats(FST("stats"),
     uint32_t baud = 0;
     uart_get_baudrate(UART_NUM_0, &baud);
     stream->printf(FST("Baud rate: %d\r\n"), (baud / 100) * 100);
-    stream->printf(FST("FW version: %s %s\r\n"), PROJECT_NAME, VERSION_NUMBER);
-    stream->printf(FST("FW compiled: %s %s\r\n"), VERSION_DATE, VERSION_TIME);
+    stream->printf(FST("FW version: %s %s\r\n"), PROJECT_NAME, PROJECT_VERSION);
+    stream->printf(FST("FW compiled: %s %s\r\n"), COMPILE_DATE, COMPILE_TIME);
     return EC_OK;
 },
 FST("Show controller stats")

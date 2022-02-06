@@ -1,5 +1,5 @@
 #include "Config.h"
-#include "ConfigReg.h"
+#include "VUEF.h"
 
 #if ENABLE_DISPLAY
 #include "Display.h"

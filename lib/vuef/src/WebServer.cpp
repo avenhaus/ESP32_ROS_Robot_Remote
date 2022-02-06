@@ -1,7 +1,7 @@
 
 #include <SPIFFS.h>
 
-#include "Config.h"
+#include "VUEF.h"
 #include "WebServer.h"
 #include "Command.h"
 #include "StateReg.h"
@@ -157,7 +157,7 @@ void WebServer::wsStateChangeCallback_(RegGroup& group) {
     PrintBuffer pb(buffer, sizeof(buffer));
     pb.print(FST("UPDATE:"));
     group.printChangeJson(pb, namePrefix, sizeof(namePrefix));
-    DEBUG_println(buffer);
+    // DEBUG_println(buffer);
     ws.textAll(buffer);
   }
 }
@@ -198,6 +198,7 @@ void WebServer::onWsEvent(AsyncWebSocket* server, AsyncWebSocketClient* client,
         StaticJsonDocument<100> jsonDocRx;
         deserializeJson(jsonDocRx, msg);
 
+        /*
         if (jsonDocRx.containsKey(F("led"))) {
             uint8_t ledState = jsonDocRx[F("led")];
             if (ledState == 1) {
@@ -207,6 +208,7 @@ void WebServer::onWsEvent(AsyncWebSocket* server, AsyncWebSocketClient* client,
             digitalWrite(LED_PIN, LOW);
             }
         }
+        */
 
         if (jsonDocRx.containsKey(F("cmd"))) {
             const char* cmd = jsonDocRx[F("cmd")];

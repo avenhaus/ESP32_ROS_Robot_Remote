@@ -4,8 +4,7 @@
 #include <sensor_msgs/BatteryState.h>
 
 #include "Config.h"
-#include "ConfigReg.h"
-#include "StateReg.h"
+#include "VUEF.h"
 #include "ROS1.h"
 #include "Battery.h"
 

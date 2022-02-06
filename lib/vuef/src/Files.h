@@ -2,7 +2,7 @@
 #define _SPIFFS_CMD_H_
 
 #include <Arduino.h>
-#include "Config.h"
+#include "VUEF.h"
 
 #if ENABLE_SPIFFS
 
