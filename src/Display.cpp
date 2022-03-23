@@ -16,7 +16,7 @@
 ConfigUInt8 configDisplayBrightness(FST("LCD Brightness"), 200, FST("Brightness of LCD backlight"), nullptr, nullptr, nullptr, setDisplayBrightness);
 ConfigUInt16Array configTouchCalibration(FST("Touch Calibration"), 8,0,0,0,0,0,0,0,0, RF_HIDDEN);
 
-extern ConfigStr configSSID;
+extern ConfigStr configStaSSID;
 
 static bool isDisplayConfigured = false;
 class LGFX : public lgfx::LGFX_Device {
@@ -300,7 +300,7 @@ void displayBootScreen() {
   tft.setCursor(0, 20);
   tft.setTextSize(1);
   tft.setFont(&fonts::Font4);
-  sprintf(buffer, FST("Connecting to: %s"), configSSID.get());
+  sprintf(buffer, FST("Connecting to: %s"), configStaSSID.get());
   tft.drawString(buffer, LCD_WIDTH/2, 140);
 
 

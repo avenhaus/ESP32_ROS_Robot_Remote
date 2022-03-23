@@ -16,7 +16,7 @@ public:
     Joystick(int8_t pin_,
         uint16_t deadBand_ = 32,
         uint16_t centerVal_ = 0xFFFF,
-        uint16_t minVal_ = 0,
+        uint16_t minVal_ = 30,
         uint16_t maxVal_ = 4095,
         float fc_ = -1.0);
 

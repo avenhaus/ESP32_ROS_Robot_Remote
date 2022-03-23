@@ -38,12 +38,13 @@ float Joystick::read() {
     if (centerVal == 0xFFFF) { calibrate(); }
     raw = analogRead(pin);
     if (raw > centerVal + deadBand) {
-        value = (float) (raw - deadBand) / float(maxVal - deadBand);
+        value = (float) (raw - (centerVal + deadBand)) / float(maxVal - (centerVal + deadBand));
     } else if (raw < centerVal - deadBand) {
-        value = (float) -(centerVal - deadBand - raw) / float(centerVal - deadBand);
+        value = (float) -(centerVal - deadBand - raw) / float(centerVal - deadBand - minVal);
     } else {
         value = 0.0;
     }
+    value = CLAMP(value, -1.0, 1.0);
     if (fc == 0.0) { return fvalue = value; }
     else if (fc > 0.0 && fc < 0.5) { fvalue = fvalue * (1.0 - fc) + value * fc; }
     else { fvalue = acc.avg((float) value); }
